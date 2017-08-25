@@ -15,7 +15,7 @@ const opts = {
 
 const bws = new BFX(API_KEY, API_SECRET, opts).ws;
 
-var bfxPairId = 'IOTBTC';
+var bfxPairId = 'BTCUSD';
 
 
 
@@ -118,10 +118,13 @@ bws.on('trade', (pair, trades) => {
 bws.on('error', console.error)
 
 var alignedPriceData = priceDataSource
+    //.do(point => console.log(`Prealignment: Date: ${point.d}, Value: ${point.v}`))
     .map(streamPoint => ({
         d: new Date(Math.floor(streamPoint.d.getTime() / cycleLength) * cycleLength),
         v: streamPoint.v
-    }));
+    }))
+    //.do(point => console.log(`Postalignment: Date: ${point.d}, Value: ${point.v}`))
+    ;
 
 var priceTimeSeries = cycles
     .merge(alignedPriceData)
@@ -194,7 +197,9 @@ var priceTimeSeries = cycles
         pointsToEmit: [],
         bins: []
     })
-    .flatMap(accumulator => accumulator.pointsToEmit);
+    .flatMap(accumulator => accumulator.pointsToEmit)
+    //.do(point => console.log(`PricePoint: Date: ${point.d}, Value: ${point.v}`))
+    ;
 
 
 function MovingWindow(timeSeries, periods) {
@@ -206,16 +211,17 @@ function MovingWindow(timeSeries, periods) {
                 if(window[window.length-1].d.getTime() === point.d.getTime()) {
                     window[window.length-1] = point;
                 } else {
-                    return _(window).take(periods-1).push(point).value();
+                    return _(window).takeRight(periods-1).push(point).value();
                 }
             }
             return window;
         }, [])
-        .filter(window => window.length === periods);
+        .filter(window => window.length === periods)
+        .do(window => console.log(window));
 }
 
 function mean(points) {
-    return _(points).map('v').sum();
+    return _(points).map('v').sum() / points.length;
 }
 
 function stddev(points) {
@@ -230,7 +236,9 @@ function SimpleMovingAverage(timeSeries, periods) {
         .map(points => ({
             d: _.last(points).d,
             v: mean(points)
-        }));
+        }))
+        .do(point => console.log(`SMA: Date: ${point.d}, Value: ${point.v}`))
+        ;
 }
 
 function StandardDeviation(timeSeries, periods) {
@@ -238,7 +246,9 @@ function StandardDeviation(timeSeries, periods) {
         .map(points => ({
             d: _.last(points).d,
             v: stddev(points)
-        }));
+        }))
+        //.do(point => console.log(`PostSMA: Date: ${point.d}, Value: ${point.v}`))
+        ;
 }
 
 function MultiplyBy(timeSeries, multiplier) {
