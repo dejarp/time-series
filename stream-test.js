@@ -15,9 +15,10 @@ const opts = {
 
 const bws = new BFX(API_KEY, API_SECRET, opts).ws;
 
-var bfxPairId = 'BTCUSD';
+var bfxFrom = 'BTC';
+var bfxTo = 'USD';
 
-
+var bfxPairId = bfxFrom + bfxTo;
 
 var bfxTimeFrames = {
     '60000': '1m',
@@ -217,7 +218,7 @@ function MovingWindow(timeSeries, periods) {
             return window;
         }, [])
         .filter(window => window.length === periods)
-        .do(window => console.log(window));
+        //.do(window => console.log(window));
 }
 
 function mean(points) {
@@ -237,7 +238,7 @@ function SimpleMovingAverage(timeSeries, periods) {
             d: _.last(points).d,
             v: mean(points)
         }))
-        .do(point => console.log(`SMA: Date: ${point.d}, Value: ${point.v}`))
+        //.do(point => console.log(`SMA: Date: ${point.d}, Value: ${point.v}`))
         ;
 }
 
@@ -334,5 +335,5 @@ function BollingerBandLower(timeSeries, periods, multiplier) {
 var bollingerBandLowerSeries = BollingerBandLower(priceTimeSeries, periods, multiplier);
 
 bollingerBandLowerSeries.subscribe((point) => {
-    console.log( `Date: ${point.d}, Value: ${point.v} BTC`);
+    console.log( `Date: ${point.d}, Value: ${point.v} ${bfxTo}`);
 });
