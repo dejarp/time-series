@@ -1,6 +1,6 @@
-var _ = require('lodash');
-var request = require('request');
-var url = 'https://api.bitfinex.com/v2';
+const _ = require('lodash');
+const request = require('request');
+const url = 'https://api.bitfinex.com/v2';
 
 request.get( 
     `${url}/platform/status`,
