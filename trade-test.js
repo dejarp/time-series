@@ -57,6 +57,10 @@ bws.on('message', (msg) => {
         setTimeout(() => {
             var orderId = payload[0];
             
+            // Note: the docs say that orders can be canceled using the cid and cid_date
+            //       but I have found that to not be the case. It will always display the
+            //       "order not found" message in bitfinex. I don't know if this happens
+            //       due to misuse of the API or a bug on their end. Leaning towards latter.
             const orderCancel = [
                 0,
                 "oc",
