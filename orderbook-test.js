@@ -32,8 +32,8 @@ bws.on('message', (msg) => {
     var channelId = msg[0];
     var messageType = msg[1];
     var payload = msg[2];
-    console.log('Message: ');
-    console.log(msg);
+    // console.log('Message: ');
+    // console.log(msg);
     if(_.isPlainObject(msg)) {
         if(msg.event === 'info') {
 
@@ -71,7 +71,7 @@ bws.on('message', (msg) => {
                 });
             } else if (_.isArray(msg[1])) {
                 var orderbookUpdate = msg[1];
-                console.log(orderbookUpdate);
+                //console.log(orderbookUpdate);
                 var price = orderbookUpdate[0];
                 var count = orderbookUpdate[1];
                 var amount = orderbookUpdate[2];
@@ -142,6 +142,13 @@ var groupedOrderbookStream = orderbookStream
         }
     });
 
-groupedOrderbookStream.subscribe((orderbookSnapshot) => {
+var bidAskStream = groupedOrderbookStream
+    .map(orderbook => ({
+        bid: _.last(orderbook.bids),
+        ask: _.first(orderbook.asks)
+    }))
+    .distinctUntilChanged(_.isEqual)
+
+bidAskStream.subscribe((orderbookSnapshot) => {
     console.log(orderbookSnapshot);
 });
