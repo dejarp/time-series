@@ -334,55 +334,12 @@ function Subtract(minuendTimeSeries, subtrahendTimeSeries) {
 var multiplier = 2;
 var periods = 20;
 
-function BollingerBandLower(timeSeries, periods, multiplier) {
-    return Subtract(
-        SimpleMovingAverage(timeSeries, periods),
-        MultiplyBy(
-            StandardDeviation(timeSeries, periods), multiplier
-        )
-    )
-}
-
-function MovingLow(timeSeries, periods) {
-    return MovingWindow(timeSeries, periods)
-        .map(window => ({
-            d: _.last(window).d,
-            v: _.minBy(window, point => point.v).v
-        }))
-        .distinctUntilChanged(_.isEqual);
-}
-
-function MovingHigh(timeSeries, periods) {
-    return MovingWindow(timeSeries, periods)
-        .map(window => ({
-            d: _.last(window).d,
-            v: _.maxBy(window, point => point.v).v
-        }))
-        .distinctUntilChanged(_.isEqual);
-}
-
-function StochasticK(closeSeries, highSeries, lowSeries, periods) {
-    return Collate({
-        close: closeSeries,
-        // low of the previous n periods
-        low: MovingLow(Lag(lowSeries, 1), periods),
-        // high of the previous n periods
-        high: MovingHigh(Lag(highSeries, 1), periods)})
-        .map(collection => ({
-            d: collection.low.d,
-            v: 100 * (collection.close.v - collection.low.v) / (collection.high.v - collection.low.v)
-        }));
-}
-
-function StochasticD(closeSeries, highSeries, lowSeries, periods, smoothingPeriods) {
-    return SimpleMovingAverage(
-        StochasticK(closeSeries, highSeries, lowSeries, periods), smoothingPeriods
-    );
-}
+const BollingerBandLower = require('./bollinger-band-lower');
 
 var bollingerBandLowerSeries = BollingerBandLower(priceCloseTimeSeries, periods, multiplier);
 
-var stochasticDStream = StochasticK(
+const StochasticD = require('./stochastic-d');
+var stochasticDStream = StochasticD(
     priceCloseTimeSeries, priceHighTimeSeries, priceLowTimeSeries, 14, 3);
 
 stochasticDStream.subscribe((point) => {
