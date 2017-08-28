@@ -39,12 +39,13 @@ var bfxTimeFrames = {
 var oneSecond = 1000;
 var fiveSeconds = 5 * oneSecond;
 var oneMinute = 60 * oneSecond;
+var fiveMinutes = 5 * oneMinute;
 var fifteenMinutes = 15 * oneMinute;
 
 
 var twentyFourHoursAgo = new Date();
 twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-var cycleLength = fifteenMinutes;
+var cycleLength = fiveMinutes;
 var nearestCycleStartTime = Math.floor(twentyFourHoursAgo.getTime() / cycleLength) * cycleLength;
 twentyFourHoursAgo.setTime(nearestCycleStartTime);
 
@@ -62,7 +63,12 @@ var pastCycles = Rx.Observable
 
 var cycles = pastCycles.concat(futureCycles);
 
-var priceDataSource = new Rx.Subject();
+var priceOpenSubject= new Rx.Subject();
+var priceCloseSubject = new Rx.Subject();
+var priceHighSubject = new Rx.Subject();
+var priceLowSubject= new Rx.Subject();
+var volumeSubject = new Rx.Subject();
+
 request.get( 
     `${url}/candles/trade:${bfxTimeFrames[cycleLength]}:t${bfxPairId}/hist`,
     (error, response, body) =>  {
@@ -71,13 +77,32 @@ request.get(
         _.forEachRight(candles, (candle) => {
             // [date, open, close, high, low, volume]
             var date = new Date(candle[0]);
-            var price = candle[2];
-            var streamPoint = {
+            priceOpenSubject.next({
                 d: date,
-                v: price
-            };
-            priceDataSource.next(streamPoint);
+                v: candle[1]
+            });
+            priceCloseSubject.next({
+                d: date,
+                v: candle[2]
+            });
+            priceHighSubject.next({
+                d: date,
+                v: candle[3]
+            });
+            priceLowSubject.next({
+                d: date,
+                v: candle[4]
+            });
+            volumeSubject.next({
+                d: date,
+                v: candle[5]
+            });
         });
+
+        priceOpenSubject.complete();
+        priceHighSubject.complete();
+        priceLowSubject.complete();
+        volumeSubject.complete();
     }
 );
 
@@ -112,96 +137,74 @@ bws.on('trade', (pair, trades) => {
                 d: date,
                 v: price
             };
-            priceDataSource.next(streamPoint);
+            priceCloseDataSource.next(streamPoint);
         });
 });
 
 bws.on('error', console.error)
 
-var alignedPriceData = priceDataSource
-    //.do(point => console.log(`Prealignment: Date: ${point.d}, Value: ${point.v}`))
-    .map(streamPoint => ({
+function BfxDataToTimeSeries(dataSource) {
+    return dataSource.map(streamPoint => ({
         d: new Date(Math.floor(streamPoint.d.getTime() / cycleLength) * cycleLength),
         v: streamPoint.v
-    }))
-    //.do(point => console.log(`Postalignment: Date: ${point.d}, Value: ${point.v}`))
-    ;
+    }));
+}
 
-var priceTimeSeries = cycles
-    .merge(alignedPriceData)
-    .scan((accumulator, dateOrPoint) => {
-        accumulator.pointsToEmit = [];
-        var index;
-        if(_.isDate(dateOrPoint)) {
-            var date = dateOrPoint;
-            index = _.sortedIndexBy(accumulator.bins, { date: date }, bin => bin.date);
-            if(!accumulator.bins[index]) {
-                // the array is empty, go ahead and insert
-                accumulator.bins.push({
-                    date: date,
-                    inDomain: true,
-                    points: []
-                });
-            } else {
-                // the bin exists, we either need to modify it or insert after it
-                if(accumulator.bins[index].date.getTime() === date.getTime()) {
-                    accumulator.bins[index].inDomain = true
-                } else {
-                    accumulator.bins.splice(index, 0, {
-                        date: date,
-                        inDomain: true,
-                        points: []
-                    });
-                }
-            }
+const AlignToDates = require('./align-to-dates');
+
+var priceOpenDataSource = priceOpenSubject;
+var priceCloseDataSource = priceCloseSubject;
+var priceHighDataSource = priceHighSubject
+    .concat(priceCloseSubject)
+    .scan((accumulator, point) => {
+        if(accumulator.currentDate === null || accumulator.currentDate.getTime() !== point.d.getTime()) {
+            accumulator.currentDate = point.d;
+            accumulator.currentHigh = point.v;
         } else {
-            var point = dateOrPoint;
-            if(accumulator.currentDate && accumulator.currentDate.getTime() === point.d.getTime()) {
-                accumulator.pointsToEmit = [ point ];
+            if(accumulator.currentHigh < point.v) {
+                accumulator.currentHigh = point.v;
             } else {
-                index = _.sortedIndexBy(accumulator.bins, { date: point.d }, bin => bin.date);
-                if(!accumulator.bins[index]) {
-                    accumulator.bins.push({
-                        date: point.d,
-                        inDomain: false,
-                        points: [ point ]
-                    });
-                } else {
-                    if(accumulator.bins[index].date.getTime() === point.d.getTime()) {
-                        accumulator.bins[index].points.push(point);
-                    } else {
-                        accumulator.bins.splice(index, 0, {
-                            date: point.d,
-                            inDomain: false,
-                            points: [ point ]
-                        });
-                    }
-                }
+                // do nothing
             }
         }
-
-        // at this point the date or point should have been added
-        // need to see if that bin is full (has a date and point(s))
-        // if it is full, 
-        if( accumulator.bins[index]
-            && accumulator.bins[index].inDomain 
-            && !_.isEmpty(accumulator.bins[index].points)
-        ) {
-            accumulator.currentDate = accumulator.bins[index].date;
-            accumulator.pointsToEmit = accumulator.bins[index].points;
-            accumulator.bins.splice(0, index + 1);
-        }
-
         return accumulator;
     }, {
         currentDate: null,
-        pointsToEmit: [],
-        bins: []
+        currentHigh: Number.NEGATIVE_INFINITY
     })
-    .flatMap(accumulator => accumulator.pointsToEmit)
-    //.do(point => console.log(`PricePoint: Date: ${point.d}, Value: ${point.v}`))
-    ;
+    .map(accumulator => ({
+        d: accumulator.currentDate,
+        v: accumulator.currentHigh
+    }))
+    .distinctUntilChanged();
+var priceLowDataSource = priceLowSubject
+    .concat(priceCloseSubject)
+    .scan((accumulator, point) => {
+        if(accumulator.currentDate === null || accumulator.currentDate.getTime() !== point.d.getTime()) {
+            accumulator.currentDate = point.d;
+            accumulator.currentLow = point.v;
+        } else {
+            if(accumulator.currentLow > point.v) {
+                accumulator.currentLow = point.v;
+            } else {
+                // do nothing
+            }
+        }
+        return accumulator;
+    }, {
+        currentDate: null,
+        currentLow: Number.POSITIVE_INFINITY
+    })
+    .map(accumulator => ({
+        d: accumulator.currentDate,
+        v: accumulator.currentLow
+    }))
+    .distinctUntilChanged();
 
+var priceOpenTimeSeries = AlignToDates(BfxDataToTimeSeries(priceOpenDataSource), cycles);
+var priceCloseTimeSeries = AlignToDates(BfxDataToTimeSeries(priceCloseDataSource), cycles);
+var priceHighTimeSeries = AlignToDates(BfxDataToTimeSeries(priceHighDataSource), cycles);
+var priceLowTimeSeries = AlignToDates(BfxDataToTimeSeries(priceLowDataSource), cycles);
 
 function MovingWindow(timeSeries, periods) {
     return timeSeries
@@ -212,13 +215,21 @@ function MovingWindow(timeSeries, periods) {
                 if(window[window.length-1].d.getTime() === point.d.getTime()) {
                     window[window.length-1] = point;
                 } else {
-                    return _(window).takeRight(periods-1).push(point).value();
+                    return _(window).takeRight(periods - 1).push(point).value();
                 }
             }
             return window;
         }, [])
         .filter(window => window.length === periods)
         //.do(window => console.log(window));
+}
+
+function Lag(timeSeries, periods) {
+    return MovingWindow(timeSeries, periods + 1)
+        .map(window => ({
+            d: window[window.length-1].d,
+            v: window[0].v
+        }))
 }
 
 function mean(points) {
@@ -332,8 +343,48 @@ function BollingerBandLower(timeSeries, periods, multiplier) {
     )
 }
 
-var bollingerBandLowerSeries = BollingerBandLower(priceTimeSeries, periods, multiplier);
+function MovingLow(timeSeries, periods) {
+    return MovingWindow(timeSeries, periods)
+        .map(window => ({
+            d: _.last(window).d,
+            v: _.minBy(window, point => point.v).v
+        }))
+        .distinctUntilChanged(_.isEqual);
+}
 
-bollingerBandLowerSeries.subscribe((point) => {
+function MovingHigh(timeSeries, periods) {
+    return MovingWindow(timeSeries, periods)
+        .map(window => ({
+            d: _.last(window).d,
+            v: _.maxBy(window, point => point.v).v
+        }))
+        .distinctUntilChanged(_.isEqual);
+}
+
+function StochasticK(closeSeries, highSeries, lowSeries, periods) {
+    return Collate({
+        close: closeSeries,
+        // low of the previous n periods
+        low: MovingLow(Lag(lowSeries, 1), periods),
+        // high of the previous n periods
+        high: MovingHigh(Lag(highSeries, 1), periods)})
+        .map(collection => ({
+            d: collection.low.d,
+            v: 100 * (collection.close.v - collection.low.v) / (collection.high.v - collection.low.v)
+        }));
+}
+
+function StochasticD(closeSeries, highSeries, lowSeries, periods, smoothingPeriods) {
+    return SimpleMovingAverage(
+        StochasticK(closeSeries, highSeries, lowSeries, periods), smoothingPeriods
+    );
+}
+
+var bollingerBandLowerSeries = BollingerBandLower(priceCloseTimeSeries, periods, multiplier);
+
+var stochasticDStream = StochasticK(
+    priceCloseTimeSeries, priceHighTimeSeries, priceLowTimeSeries, 14, 3);
+
+stochasticDStream.subscribe((point) => {
     console.log( `Date: ${point.d}, Value: ${point.v} ${bfxTo}`);
 });
