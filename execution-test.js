@@ -64,6 +64,20 @@ function cancelOrder(bfxWS, cid) {
     bfxWS.send(orderCancel);
 }
 
+const StochasticD = require('./stochastic-d');
+function StochasticStrategy(
+    closeSeries, 
+    highSeries, 
+    lowSeries, 
+    periods, 
+    smoothingPeriods
+) {
+    var stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, periods, smoothingPeriods)
+
+    stochasticDStream
+        .map()
+}
+
 bws.on('auth', () => {
     console.log('authenticated with bitfinex')
     // placeLimitOrder(bws, bfxSymbol, -1, .00025);
@@ -72,6 +86,7 @@ bws.on('auth', () => {
     var oneSecond = 1000;
     var fiveSeconds = 5 * oneSecond;
     var oneMinute = 60 * oneSecond;
+    var fiveMinutes = 5 * oneMinute;
     var fifteenMinutes = 15 * oneMinute;
     var priceTimeSeries = bfxPriceSeries(bfxAPI, bfxSymbol, fifteenMinutes);
         
