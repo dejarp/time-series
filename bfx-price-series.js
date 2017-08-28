@@ -35,7 +35,7 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
     });
 
     var twentyFourHoursAgo = new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - (24 * 7));
     var nearestCycleStartTime = Math.floor(twentyFourHoursAgo.getTime() / cycleLength) * cycleLength;
     twentyFourHoursAgo.setTime(nearestCycleStartTime);
     
