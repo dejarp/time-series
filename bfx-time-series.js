@@ -99,6 +99,11 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
     bfxAPI.ws.on('open', () => {
         bfxAPI.ws.subscribeTrades(bfxPairId);
         bfxAPI.ws.subscribeOrderBook('IOTBTC')
+        bfxAPI.ws.auth();
+    });
+
+    bfxAPI.ws.on('auth', () => {
+        console.log('authenticated');
     });
 
     bfxAPI.ws.on('trade', (pair, trades) => {
@@ -126,11 +131,215 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
     };
 
     var orderbookDataSource = new Rx.Subject();
+    var ordersTimeSeries = new Rx.Subject();
     bfxAPI.ws.on('message', (msg) => {
         var messageTimeStamp = new Date();
         var channelId = msg[0];
         var messageType = msg[1];
         var payload = msg[2];
+
+        var messages = {};
+
+        messages = {
+            // order stream
+            // https://docs.bitfinex.com/v2/reference#ws-auth-orders
+            'os': {
+                name: 'Order Snapshot',
+                handler: messageHandler(msg => {
+                })
+            },
+            'on': {
+                name: 'Order New',
+                handler: messageHandler(msg => {
+                })
+            },
+            'ou': {
+                name: 'Order Update',
+                handler: messageHandler(msg => {
+                })
+            },
+            'oc': {
+                name: 'Order Cancel',
+                handler: messageHandler(msg => {
+                })
+            },
+            // positions
+            // https://docs.bitfinex.com/v2/reference#ws-auth-position
+            'ps': {
+                name: 'Position Snapshot',
+                debug: true,
+                handler: messageHandler(msg => {
+                })
+            },
+            'pn': {
+                name: 'Position New',
+                debug: true,
+                handler: messageHandler(msg => {
+                })
+            },
+            'pu': {
+                name: 'Position Update',
+                debug: true,
+                handler: messageHandler(msg => {
+                })
+            },
+            'pc': {
+                name: 'Position Cancel',
+                debug: true,
+                handler: messageHandler(msg => {
+                })
+            },
+            // Trades
+            // https://docs.bitfinex.com/v2/reference#ws-auth-trades
+            'te': {
+                name: 'Trade Execution',
+                handler: messageHandler(msg => {
+                })
+            },
+            'tu': {
+                name: 'Trade Update',
+                handler: messageHandler(msg => {
+                })
+            },
+            // Funding Offers
+            // https://docs.bitfinex.com/v2/reference#ws-auth-offers
+            'fos': {
+                name: 'Funding Offer Snapshot',
+                handler: messageHandler(msg => {
+                })
+            },
+            'fon': {
+                name: 'Funding Offer New',
+                handler: messageHandler(msg => {
+                })
+            },
+            'fou': {
+                name: 'Funding Offer Update',
+                handler: messageHandler(msg => {
+                })
+            },
+            'foc': {
+                name: 'Funding Offer Cancel',
+                handler: messageHandler(msg => {
+                })
+            },
+            // Funding Credits
+            // https://docs.bitfinex.com/v2/reference#ws-auth-credits
+            'fcs': {
+                name: 'Funding Credit Snapshot',
+                handler: messageHandler(msg => {
+                })
+            },
+            'fcn': {
+                name: 'Funding Credit New',
+                handler: messageHandler(msg => {
+                })
+            },
+            'fcu': {
+                name: 'Funding Credit Update',
+                handler: messageHandler(msg => {
+                })
+            },
+            'fcc': {
+                name: 'Funding Credit Cancel',
+                handler: messageHandler(msg => {
+                })
+            },
+            // Funding Loans
+            // https://docs.bitfinex.com/v2/reference#ws-auth-loans
+            'fls': {
+                name: 'Funding Loan Snapshot',
+                handler: messageHandler(msg => {
+                })
+            },
+            'fln': {
+                name: 'Funding Loan New',
+                handler: messageHandler(msg => {
+                })
+            },
+            'flu': {
+                name: 'Funding Loan Update',
+                handler: messageHandler(msg => {
+                })
+            },
+            'flc': {
+                name: 'Funding Loan Cancel',
+                handler: messageHandler(msg => {
+                })
+            },
+            // Wallets
+            // https://docs.bitfinex.com/v2/reference#ws-auth-wallets
+            'ws': {
+                name: 'Wallet Snapshot',
+                handler: messageHandler(msg => {
+                })
+            },
+            'wu': {
+                name: 'Wallet Update',
+                handler: messageHandler(msg => {
+                })
+            },
+            // Balance Info
+            // https://docs.bitfinex.com/v2/reference#ws-auth-balance
+            'bu': {
+                name: 'Balance Info Update',
+                handler: messageHandler(msg => {
+                })
+            },
+            // Margin Info
+            // https://docs.bitfinex.com/v2/reference#ws-auth-margin
+            'miu': {
+                name: 'Margin Info Update',
+                handler: messageHandler(msg => {
+                })
+            },
+            // Funding Info
+            // https://docs.bitfinex.com/v2/reference#ws-auth-funding
+            'fiu': {
+                name: 'Funding Info Update',
+                handler: messageHandler(msg => {
+                })
+            },
+            // Funding Trades
+            // https://docs.bitfinex.com/v2/reference#ws-auth-funding-trades
+            'fte': {
+                name: 'Funding Trade Executed',
+                handler: messageHandler(msg => {
+                })
+            },
+            'ftu': {
+                name: 'Funding Trade Update',
+                handler: messageHandler(msg => {
+                })
+            },
+            // Notifications
+            // https://docs.bitfinex.com/v2/reference#ws-auth-notifications
+            'n': {
+                name: 'Notification',
+                handler: messageHandler(msg => {
+                })
+            }
+        };
+
+        function getMessageMetadata(type) {
+            return _.get(messages, type, { 
+                name: 'Unknown', 
+                handler: _.noop
+            });
+        }
+
+        function messageHandler(cb) {
+            return (msg) => {
+                const messageType = msg[1];
+                var messageMetadata = getMessageMetadata(messageType);
+                if(messageMetadata.debug) {
+                    console.log(`${messageMetadata.name}:`);
+                    console.log(msg);
+                }
+                cb(msg);
+            }
+        }
+
         // console.log('Message: ');
         // console.log(msg);
         if(_.isPlainObject(msg)) {
@@ -216,6 +425,10 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
                     d: messageTimeStamp,
                     v: _.cloneDeep(orderbook)}
                 );
+            } else {
+                var messageMetadata = getMessageMetadata(messageType);
+                
+                messageMetadata.handler(msg);
             }
         }
     });
@@ -338,6 +551,7 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
         highs: priceHighTimeSeries,
         lows: priceLowTimeSeries,
         bids: bidsTimeSeries,
-        asks: asksTimeSeries
+        asks: asksTimeSeries,
+        orders: ordersTimeSeries
     };
 }
