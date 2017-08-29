@@ -98,6 +98,7 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
     
     bfxAPI.ws.on('open', () => {
         bfxAPI.ws.subscribeTrades(bfxPairId);
+        bfxAPI.ws.subscribeOrderBook('IOTBTC')
     });
 
     bfxAPI.ws.on('trade', (pair, trades) => {
@@ -117,6 +118,138 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
                 priceCloseSubject.next(streamPoint);
             });
     });
+
+    var bookChannelId;
+    var orderbook = {
+        bids: [],
+        asks: []
+    };
+
+    var orderbookStream = new Rx.Subject();
+    bfxAPI.ws.on('message', (msg) => {
+        var channelId = msg[0];
+        var messageType = msg[1];
+        var payload = msg[2];
+        // console.log('Message: ');
+        // console.log(msg);
+        if(_.isPlainObject(msg)) {
+            if(msg.event === 'info') {
+    
+            } else if(msg.event === 'subscribed') {
+                if(msg.channel === 'book') {
+                    bookChannelId = msg.chanId;
+                }
+            }
+        } else if(_.isArray(msg)) {
+            if(msg[0] === bookChannelId) {
+                if(_.isArray(msg[1]) && _.isArray(msg[1][0])) {
+                    var orderbookInitialStates = msg[1];
+                    _.forEach(orderbookInitialStates, (obis) => {
+                        var price = obis[0];
+                        var count = obis[1];
+                        var amount = obis[2];
+    
+                        if(amount > 0) {
+                            var index = _.sortedIndexBy(orderbook.bids, {price: price}, bid => bid.price);
+                            orderbook.bids.splice(index, 0, {
+                                price: price,
+                                count: count,
+                                amount: amount
+                            });
+                        } else if(amount < 0) {
+                            var index = _.sortedIndexBy(orderbook.asks, {price: price}, ask => ask.price);
+                            orderbook.asks.splice(index, 0, {
+                                price: price,
+                                count: count,
+                                amount: amount
+                            });
+                        } else {
+                            throw new Error('well that was unexpected');
+                        }
+                    });
+                } else if (_.isArray(msg[1])) {
+                    var orderbookUpdate = msg[1];
+                    //console.log(orderbookUpdate);
+                    var price = orderbookUpdate[0];
+                    var count = orderbookUpdate[1];
+                    var amount = orderbookUpdate[2];
+    
+                    if(count > 0) {
+                        if(amount > 0) {
+                            var index = _.sortedIndexBy(orderbook.bids, {price: price}, bid => bid.price);
+                            if(!orderbook.bids[index] || orderbook.bids[index].price !== price) {
+                                orderbook.bids.splice(index, 0, {
+                                    price: price,
+                                    count: count,
+                                    amount: amount
+                                });
+                            } else {
+                                orderbook.bids[index].amount = amount;
+                                orderbook.bids[index].count = count;
+                            }
+                        } else if(amount < 0) {
+                            var index = _.sortedIndexBy(orderbook.asks, {price: price}, ask => ask.price);
+                            if(!orderbook.asks[index] || orderbook.asks[index].price !== price) {
+                                orderbook.asks.splice(index, 0, {
+                                    price: price,
+                                    count: count,
+                                    amount: amount
+                                });
+                            } else {
+                                orderbook.asks[index].amount = amount;
+                                orderbook.asks[index].count = count;
+                            }
+                        }
+                    } else {
+                        if(amount === 1) {
+                            var index = _.sortedIndexBy(orderbook.bids, {price: price}, bid => bid.price);
+                            orderbook.bids.splice(index,1);
+                        } else if(amount === -1) {
+                            var index = _.sortedIndexBy(orderbook.asks, {price: price}, ask => ask.price);
+                            orderbook.asks.splice(index,1);
+                        }
+                    }
+                }
+    
+                orderbookStream.next(_.cloneDeep(orderbook));
+            }
+        }
+    });
+
+    var groupedOrderbookStream = orderbookStream
+        .map(orderbook => {
+            return {
+                bids: _(orderbook.bids)
+                    .groupBy(bid => bid.price.toFixed(7))
+                    .map(groupedBids => ({
+                        price: parseFloat(groupedBids[0].price.toFixed(7)),
+                        amount: _(groupedBids).map('amount').sum(),
+                        count: _(groupedBids).map('count').sum()
+                    }))
+                    .value(),
+                asks: _(orderbook.asks)
+                    .groupBy(ask => ask.price.toFixed(7))
+                    .map(groupedAsks => ({
+                        price: parseFloat(groupedAsks[0].price.toFixed(7)),
+                        amount: _(groupedAsks).map('amount').sum(),
+                        count: _(groupedAsks).map('count').sum()
+                    }))
+                    .value()
+            }
+        });
+
+    var bidAskStream = groupedOrderbookStream
+        .map(orderbook => ({
+            bid: _.last(orderbook.bids),
+            ask: _.first(orderbook.asks)
+        }))
+        .distinctUntilChanged(_.isEqual)
+
+    var bidsTimeSeries = bidAskStream
+        .map(bidAsk => bidAsk.bid);
+
+    var asksTimeSeries = bidAskStream
+        .map(bidAsk => bidAsk.ask);
 
     bfxAPI.ws.on('error', console.error)
 
@@ -185,6 +318,8 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
         opens: priceOpenTimeSeries,
         closes: priceCloseTimeSeries,
         highs: priceHighTimeSeries,
-        lows: priceLowTimeSeries
+        lows: priceLowTimeSeries,
+        bids: bidsTimeSeries,
+        asks: asksTimeSeries
     };
 }

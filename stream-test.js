@@ -65,8 +65,8 @@ var balanceStream = Collate({
         date: null,
         action: null,
         balances: {
-            IOT: 100,
-            BTC: 0,
+            IOT: 0,
+            BTC: 1,
         }
     });
 
