@@ -1,4 +1,4 @@
-const bfxPriceSeries = require('./bfx-price-series');
+const bfxTimeSeries = require('./bfx-time-series');
 
 var oneSecond = 1000;
 var fiveSeconds = 5 * oneSecond;
@@ -9,7 +9,7 @@ var fifteenMinutes = 15 * oneMinute;
 var bfxFrom = 'IOT';
 var bfxTo = 'BTC';
 
-var series = bfxPriceSeries(bfxFrom, bfxTo, oneMinute);
+var series = bfxTimeSeries(bfxFrom, bfxTo, oneMinute);
 
 series.bids.subscribe((bid) => {
     console.log(bid);

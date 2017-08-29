@@ -2,7 +2,7 @@ const _ = require('lodash');
 const Rx = require('rxjs');
 const request = require('request');
 const BFX = require('bitfinex-api-node');
-const bfxPriceSeries = require('./bfx-price-series');
+const bfxTimeSeries = require('./bfx-time-series');
 const BollingerBandLower = require('./bollinger-band-lower');
 
 const API_KEY_V2 = 'g0iI9DsJmEuLnZDIHJFXsm1DaJpqvA4TDQZlOslyYjA';
@@ -88,7 +88,7 @@ bws.on('auth', () => {
     var oneMinute = 60 * oneSecond;
     var fiveMinutes = 5 * oneMinute;
     var fifteenMinutes = 15 * oneMinute;
-    var priceTimeSeries = bfxPriceSeries(bfxAPI, bfxSymbol, fifteenMinutes);
+    var priceTimeSeries = bfxTimeSeries(bfxAPI, bfxSymbol, fifteenMinutes);
         
     var multiplier = 2;
     var periods = 20;

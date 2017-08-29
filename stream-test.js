@@ -1,5 +1,5 @@
 const Rx = require('rxjs');
-const bfxPriceSeries = require('./bfx-price-series');
+const bfxTimeSeries = require('./bfx-time-series');
 const BollingerBandLower = require('./bollinger-band-lower');
 const StochasticD = require('./stochastic-d');
 const Collate = require('./collate');
@@ -13,10 +13,10 @@ var fifteenMinutes = 15 * oneMinute;
 var bfxFrom = 'IOT';
 var bfxTo = 'BTC';
 
+var series = bfxTimeSeries(bfxFrom, bfxTo, oneMinute);
+
 var periods = 14;
 var smoothingPeriods = 3;
-
-var series = bfxPriceSeries(bfxFrom, bfxTo, oneMinute);
 
 var stochasticDStream = StochasticD(
     series.closes, 

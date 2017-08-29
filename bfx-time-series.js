@@ -125,8 +125,9 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
         asks: []
     };
 
-    var orderbookStream = new Rx.Subject();
+    var orderbookDataSource = new Rx.Subject();
     bfxAPI.ws.on('message', (msg) => {
+        var messageTimeStamp = new Date();
         var channelId = msg[0];
         var messageType = msg[1];
         var payload = msg[2];
@@ -211,45 +212,60 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
                     }
                 }
     
-                orderbookStream.next(_.cloneDeep(orderbook));
+                orderbookDataSource.next({
+                    d: messageTimeStamp,
+                    v: _.cloneDeep(orderbook)}
+                );
             }
         }
     });
 
-    var groupedOrderbookStream = orderbookStream
+    var groupedOrderbookDataSource = orderbookDataSource
         .map(orderbook => {
             return {
-                bids: _(orderbook.bids)
-                    .groupBy(bid => bid.price.toFixed(7))
-                    .map(groupedBids => ({
-                        price: parseFloat(groupedBids[0].price.toFixed(7)),
-                        amount: _(groupedBids).map('amount').sum(),
-                        count: _(groupedBids).map('count').sum()
-                    }))
-                    .value(),
-                asks: _(orderbook.asks)
-                    .groupBy(ask => ask.price.toFixed(7))
-                    .map(groupedAsks => ({
-                        price: parseFloat(groupedAsks[0].price.toFixed(7)),
-                        amount: _(groupedAsks).map('amount').sum(),
-                        count: _(groupedAsks).map('count').sum()
-                    }))
-                    .value()
+                d: orderbook.d,
+                v: {
+                    bids: _(orderbook.v.bids)
+                        .groupBy(bid => bid.price.toFixed(7))
+                        .map(groupedBids => ({
+                            price: parseFloat(groupedBids[0].price.toFixed(7)),
+                            amount: _(groupedBids).map('amount').sum(),
+                            count: _(groupedBids).map('count').sum()
+                        }))
+                        .value(),
+                    asks: _(orderbook.v.asks)
+                        .groupBy(ask => ask.price.toFixed(7))
+                        .map(groupedAsks => ({
+                            price: parseFloat(groupedAsks[0].price.toFixed(7)),
+                            amount: _(groupedAsks).map('amount').sum(),
+                            count: _(groupedAsks).map('count').sum()
+                        }))
+                        .value()
+                }
             }
         });
 
-    var bidAskStream = groupedOrderbookStream
+    var bidAskDataSource = groupedOrderbookDataSource
         .map(orderbook => ({
-            bid: _.last(orderbook.bids),
-            ask: _.first(orderbook.asks)
+            d: orderbook.d,
+            v: {
+                bid: _.last(orderbook.v.bids),
+                ask: _.first(orderbook.v.asks)
+            }
         }))
         .distinctUntilChanged(_.isEqual)
 
-    var bidsTimeSeries = bidAskStream
-        .map(bidAsk => bidAsk.bid);
+    var bidsDataSource = bidAskDataSource
+        .map(bidAsk => ({
+            d: bidAsk.d,
+            v: bidAsk.v.bid.price
+        }));
 
-    var asksTimeSeries = bidAskStream
-        .map(bidAsk => bidAsk.ask);
+    var asksDataSource = bidAskDataSource
+        .map(bidAsk => ({
+            d: bidAsk.d,
+            v: bidAsk.v.ask.price
+        }));
 
     bfxAPI.ws.on('error', console.error)
 
@@ -313,6 +329,8 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
     var priceCloseTimeSeries = AlignToDates(BfxDataToTimeSeries(priceCloseDataSource), cycles);
     var priceHighTimeSeries = AlignToDates(BfxDataToTimeSeries(priceHighDataSource), cycles);
     var priceLowTimeSeries = AlignToDates(BfxDataToTimeSeries(priceLowDataSource), cycles);
+    var bidsTimeSeries = AlignToDates(BfxDataToTimeSeries(bidsDataSource), cycles).distinctUntilChanged(_.isEqual);
+    var asksTimeSeries = AlignToDates(BfxDataToTimeSeries(asksDataSource), cycles).distinctUntilChanged(_.isEqual);
     
     return {
         opens: priceOpenTimeSeries,
