@@ -8,7 +8,7 @@ const Collate = require('./collate');
 
 const bfxFrom = 'IOT';
 const bfxTo = 'BTC';
-var series = bfxTimeSeries(bfxFrom, bfxTo, Periods.oneMinute);
+var series = bfxTimeSeries(bfxFrom, bfxTo, Periods.fiveMinutes);
 
 var periods = 14;
 var smoothingPeriods = 3;
@@ -32,6 +32,6 @@ var prettyCollatedSeries = collatedSeries
         v: _.mapValues(data, frame => frame.v)
     }));
 
-prettyCollatedSeries.subscribe((data) => {
+stochasticDSeries.subscribe((data) => {
     console.log(data);
 });

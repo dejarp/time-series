@@ -1,17 +1,26 @@
+const Rx = require('rxjs');
 const Collate = require('./collate');
 const MovingLow = require('./moving-low');
 const MovingHigh = require('./moving-high');
 const Lag = require('./lag');
 
 module.exports = function StochasticK(closeSeries, highSeries, lowSeries, periods) {
-    return Collate({
-        close: closeSeries,
-        // low of the previous n periods
-        low: MovingLow(Lag(lowSeries, 1), periods),
-        // high of the previous n periods
-        high: MovingHigh(Lag(highSeries, 1), periods)})
-        .map(collection => ({
-            d: collection.low.d,
-            v: 100 * (collection.close.v - collection.low.v) / (collection.high.v - collection.low.v)
-        }));
+    return Rx.Observable
+        .zip(
+            closeSeries.skip(periods - 1), 
+            MovingLow(lowSeries, periods), 
+            MovingHigh(highSeries, periods)
+        )
+        .map(results => {
+            var close = results[0];
+            var low = results[1];
+            var high = results[2];
+            if(close.d.getTime() !== low.d.getTime()) {
+                throw new Error('misaligned');
+            }
+            return {
+                d: close.d,
+                v: 100 * (close.v - low.v) / (high.v - low.v)
+            };
+        });
 }

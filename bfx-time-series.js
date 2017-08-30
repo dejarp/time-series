@@ -542,6 +542,11 @@ module.exports = (bfxFrom, bfxTo, cycleLength, loggingEnabled) => {
 
     var priceOpenTimeSeries = AlignToDates(BfxDataToTimeSeries(priceOpenDataSource), cycles);
     var priceCloseTimeSeries = AlignToDates(BfxDataToTimeSeries(priceCloseDataSource), cycles);
+    // Note: there is a bug here with concat and how it interacts with bitfinex api. The real time
+    //       subscription will happen after the bin has been started most of the time, and since the
+    //       historical fetch didn't fetch the current low or high, then the low or high as calculated
+    //       here on the fly could be incorrect. To fix this, there needs to be a way to get the low and
+    //       high of the current bin, or you can wait until the next bin to begin trading on more accurate data.
     var priceHighTimeSeries = AlignToDates(
         BfxDataToTimeSeries(priceHighDataSource).concat(BinHigh(priceCloseTimeSeries)), 
         cycles);

@@ -6,6 +6,5 @@ module.exports = function MovingLow(timeSeries, periods) {
         .map(window => ({
             d: _.last(window).d,
             v: _.minBy(window, point => point.v).v
-        }))
-        .distinctUntilChanged(_.isEqual);
+        }));
 };

@@ -2,6 +2,7 @@ const Rx = require('rxjs');
 const bfxTimeSeries = require('./bfx-time-series');
 const BollingerBandLower = require('./bollinger-band-lower');
 const StochasticD = require('./stochastic-d');
+const StochasticK = require('./stochastic-k');
 const Collate = require('./collate');
 
 var oneSecond = 1000;
@@ -13,7 +14,7 @@ var fifteenMinutes = 15 * oneMinute;
 var bfxFrom = 'IOT';
 var bfxTo = 'BTC';
 
-var series = bfxTimeSeries(bfxFrom, bfxTo, oneMinute);
+var series = bfxTimeSeries(bfxFrom, bfxTo, fiveMinutes);
 
 var periods = 14;
 var smoothingPeriods = 3;
@@ -43,7 +44,7 @@ function OscillatorStrategy(oscillatorStream, buyLevel, sellLevel) {
         });
 }
 
-var strategyStream = OscillatorStrategy(stochasticDStream, 20, 80);
+var strategyStream = OscillatorStrategy(stochasticDStream, 8, 92);
 
 var balanceStream = Collate({
     price: series.closes,
@@ -70,7 +71,9 @@ var balanceStream = Collate({
         }
     });
 
-balanceStream.subscribe(accumulator => console.log(accumulator));
+balanceStream.subscribe(accumulator => {
+    console.log(accumulator)
+});
 
 // strategyStream.subscribe((point) => {
 //     console.log( `Date: ${point.d}, Value: ${point.v}`);
