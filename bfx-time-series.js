@@ -25,7 +25,7 @@ var bfxTimeFrames = {
     // be no direct translation.
 }
 
-module.exports = (bfxFrom, bfxTo, cycleLength) => {
+module.exports = (bfxFrom, bfxTo, cycleLength, loggingEnabled) => {
     var bfxPairId = `${bfxFrom}${bfxTo}`;
     var bfxSymbol = `t${bfxPairId}`;
 
@@ -58,6 +58,7 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
     var priceHighSubject = new Rx.Subject();
     var priceLowSubject= new Rx.Subject();
     var volumeSubject = new Rx.Subject();
+    var walletSubject = new Rx.Subject();
     
     request.get( 
         `${url}/candles/trade:${bfxTimeFrames[cycleLength]}:${bfxSymbol}/hist`,
@@ -271,18 +272,22 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
             // https://docs.bitfinex.com/v2/reference#ws-auth-wallets
             'ws': {
                 name: 'Wallet Snapshot',
+                debug: true,
                 handler: messageHandler(msg => {
+                    walletSubject.next(msg);
                 })
             },
             'wu': {
                 name: 'Wallet Update',
                 handler: messageHandler(msg => {
+                    walletSubject.next(msg);
                 })
             },
             // Balance Info
             // https://docs.bitfinex.com/v2/reference#ws-auth-balance
             'bu': {
                 name: 'Balance Info Update',
+                debug: true,
                 handler: messageHandler(msg => {
                 })
             },
@@ -332,7 +337,7 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
             return (msg) => {
                 const messageType = msg[1];
                 var messageMetadata = getMessageMetadata(messageType);
-                if(messageMetadata.debug) {
+                if(loggingEnabled && messageMetadata.debug) {
                     console.log(`${messageMetadata.name}:`);
                     console.log(msg);
                 }
@@ -458,6 +463,15 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
             }
         });
 
+    var balancesDataSource = walletSubject
+        .map(walletMsg => ({
+            d: new Date(),
+            v: _.transform(walletMsg[2], (accumulator, balance) => {
+                _.set(accumulator, balance[1], balance[2]);
+            }, {})
+        }))
+        .distinctUntilChanged(_.isEqual);
+
     var bidAskDataSource = groupedOrderbookDataSource
         .map(orderbook => ({
             d: orderbook.d,
@@ -484,52 +498,8 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
 
     var priceOpenDataSource = priceOpenSubject;
     var priceCloseDataSource = priceCloseSubject;
-    var priceHighDataSource = priceHighSubject
-        .concat(priceCloseSubject)
-        .scan((accumulator, point) => {
-            if(accumulator.currentDate === null || accumulator.currentDate.getTime() !== point.d.getTime()) {
-                accumulator.currentDate = point.d;
-                accumulator.currentHigh = point.v;
-            } else {
-                if(accumulator.currentHigh < point.v) {
-                    accumulator.currentHigh = point.v;
-                } else {
-                    // do nothing
-                }
-            }
-            return accumulator;
-        }, {
-            currentDate: null,
-            currentHigh: Number.NEGATIVE_INFINITY
-        })
-        .map(accumulator => ({
-            d: accumulator.currentDate,
-            v: accumulator.currentHigh
-        }))
-        .distinctUntilChanged();
+    var priceHighDataSource = priceHighSubject;
     var priceLowDataSource = priceLowSubject
-        .concat(priceCloseSubject)
-        .scan((accumulator, point) => {
-            if(accumulator.currentDate === null || accumulator.currentDate.getTime() !== point.d.getTime()) {
-                accumulator.currentDate = point.d;
-                accumulator.currentLow = point.v;
-            } else {
-                if(accumulator.currentLow > point.v) {
-                    accumulator.currentLow = point.v;
-                } else {
-                    // do nothing
-                }
-            }
-            return accumulator;
-        }, {
-            currentDate: null,
-            currentLow: Number.POSITIVE_INFINITY
-        })
-        .map(accumulator => ({
-            d: accumulator.currentDate,
-            v: accumulator.currentLow
-        }))
-        .distinctUntilChanged();
     
     function BfxDataToTimeSeries(dataSource) {
         return dataSource.map(streamPoint => ({
@@ -538,13 +508,97 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
         }));
     }
 
+    function BinWindow(timeSeries) {
+        return timeSeries
+            .scan((accumulator, point) => {
+                if(accumulator.d === null || accumulator.d.getTime() !== point.d.getTime()) {
+                    accumulator.d = point.d;
+                    accumulator.v = [point.v];
+                } else {
+                    accumulator.v.push(point.v);
+                }
+                return accumulator;
+            }, {
+                d: null,
+                v: []
+            });
+    }
+
+    function BinLow(timeSeries) {
+        return BinWindow(timeSeries)
+            .map(point => ({
+                d: point.d,
+                v: _.min(point.v)
+            }));
+    }
+
+    function BinHigh(timeSeries) {
+        return BinWindow(timeSeries)
+            .map(point => ({
+                d: point.d,
+                v: _.max(point.v)
+            }));
+    }
+
     var priceOpenTimeSeries = AlignToDates(BfxDataToTimeSeries(priceOpenDataSource), cycles);
     var priceCloseTimeSeries = AlignToDates(BfxDataToTimeSeries(priceCloseDataSource), cycles);
-    var priceHighTimeSeries = AlignToDates(BfxDataToTimeSeries(priceHighDataSource), cycles);
-    var priceLowTimeSeries = AlignToDates(BfxDataToTimeSeries(priceLowDataSource), cycles);
+    var priceHighTimeSeries = AlignToDates(
+        BfxDataToTimeSeries(priceHighDataSource).concat(BinHigh(priceCloseTimeSeries)), 
+        cycles);
+    var priceLowTimeSeries = AlignToDates(
+        BfxDataToTimeSeries(priceLowDataSource).concat(BinLow(priceCloseTimeSeries)), 
+        cycles);
     var bidsTimeSeries = AlignToDates(BfxDataToTimeSeries(bidsDataSource), cycles).distinctUntilChanged(_.isEqual);
     var asksTimeSeries = AlignToDates(BfxDataToTimeSeries(asksDataSource), cycles).distinctUntilChanged(_.isEqual);
+    var balancesTimeSeries = AlignToDates(BfxDataToTimeSeries(balancesDataSource), cycles);
+
+    function placeLimitOrder(symbol, amount, price) {
+        var cid = new Date().getTime();
+        const order = [
+            0,
+            'on',
+            null,
+            {
+                cid: cid,
+                // EXCHANGE LIMIT is only different from LIMIT in which funds it is using
+                type: 'EXCHANGE LIMIT',
+                symbol: symbol,
+                amount: amount.toString(),
+                price: price.toString(),
+                hidden: 0
+            }
+        ];
+        
+        bfxAPI.ws.submitOrder(order);
+    }
+
+    var orderSubject = new Rx.Subject();
+    orderSubject.subscribe(order => {
+        placeLimitOrder(order.bfxSymbol, order.amount, order.price);
+    });
+
+    function cancelOrder(cid) {
+        // Note: the docs say that orders can be canceled using the cid and cid_date
+        //       but I have found that to not be the case. It will always display the
+        //       "order not found" message in bitfinex. I don't know if this happens
+        //       due to misuse of the API or a bug on their end. Leaning towards latter.
+        const orderCancel = [
+            0,
+            "oc",
+            null,
+            {
+                "id": cid
+            }
+        ];
     
+        bfxWS.send(orderCancel);
+    }
+
+    var orderCancelSubject = new Rx.Subject();
+    orderCancelSubject.subscribe(orderCancellation => {
+        cancelOrder(orderCancellation.cid);
+    });
+
     return {
         opens: priceOpenTimeSeries,
         closes: priceCloseTimeSeries,
@@ -552,6 +606,8 @@ module.exports = (bfxFrom, bfxTo, cycleLength) => {
         lows: priceLowTimeSeries,
         bids: bidsTimeSeries,
         asks: asksTimeSeries,
-        orders: ordersTimeSeries
+        balances: balancesTimeSeries,
+        orderSubject: orderSubject,
+        orderCancelSubject: orderCancelSubject
     };
 }

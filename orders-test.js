@@ -11,8 +11,8 @@ var bfxTo = 'BTC';
 
 var series = bfxTimeSeries(bfxFrom, bfxTo, oneMinute);
 
-var orders = series.orders;
+var balances = series.balances;
 
-orders.subscribe((balances) => {
+balances.subscribe((balances) => {
     console.log(balances);
 });
