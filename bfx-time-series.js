@@ -512,37 +512,8 @@ module.exports = (bfxFrom, bfxTo, cycleLength, loggingEnabled) => {
         }));
     }
 
-    function BinWindow(timeSeries) {
-        return timeSeries
-            .scan((accumulator, point) => {
-                if(accumulator.d === null || accumulator.d.getTime() !== point.d.getTime()) {
-                    accumulator.d = point.d;
-                    accumulator.v = [point.v];
-                } else {
-                    accumulator.v.push(point.v);
-                }
-                return accumulator;
-            }, {
-                d: null,
-                v: []
-            });
-    }
-
-    function BinLow(timeSeries) {
-        return BinWindow(timeSeries)
-            .map(point => ({
-                d: point.d,
-                v: _.min(point.v)
-            }));
-    }
-
-    function BinHigh(timeSeries) {
-        return BinWindow(timeSeries)
-            .map(point => ({
-                d: point.d,
-                v: _.max(point.v)
-            }));
-    }
+    const BinHigh = require('./bin-high');
+    const BinLow = require('./bin-low');
 
     var priceOpenTimeSeries = AlignToDates(BfxDataToTimeSeries(priceOpenDataSource), cycles);
     var priceCloseTimeSeries = AlignToDates(BfxDataToTimeSeries(priceCloseDataSource), cycles);
@@ -559,19 +530,14 @@ module.exports = (bfxFrom, bfxTo, cycleLength, loggingEnabled) => {
         cycles);
     var bidsTimeSeries = AlignToDates(BfxDataToTimeSeries(bidsDataSource), cycles).distinctUntilChanged(_.isEqual);
     var asksTimeSeries = AlignToDates(BfxDataToTimeSeries(asksDataSource), cycles).distinctUntilChanged(_.isEqual);
-    
-    
-    function CarryForward(timeSeries, cycles) {
-        return Rx.Observable
-            .combineLatest(cycles, timeSeries)
-            .map(combination => ({
-                d: combination[0],
-                v: combination[1].v
-            }));
-    }
 
-    var balancesTimeSeries = CarryForward(
-        BfxDataToTimeSeries(balancesDataSource), 
+    const CarryForward = require('./carry-forward');
+
+    var balancesTimeSeries = AlignToDates(
+        CarryForward(
+            BfxDataToTimeSeries(balancesDataSource), 
+            cycles
+        ),
         cycles
     );
 
