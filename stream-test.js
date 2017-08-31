@@ -1,3 +1,4 @@
+const _ = require('lodash');
 const Rx = require('rxjs');
 const bfxTimeSeries = require('./bfx-time-series');
 const BollingerBandLower = require('./bollinger-band-lower');
@@ -13,6 +14,7 @@ var fifteenMinutes = 15 * oneMinute;
 
 var bfxFrom = 'IOT';
 var bfxTo = 'BTC';
+var bfxSymbol = `t${bfxFrom}${bfxTo}`;
 
 var series = bfxTimeSeries(bfxFrom, bfxTo, oneMinute);
 
@@ -78,6 +80,66 @@ var balanceStream = Collate({
     }
 );
 
-decisionStream.subscribe(point => {
-    console.log(point);
+var orderStream = decisionStream
+    .distinctUntilChanged((decision1, decision2) => {
+        function getRelevantChanges(decision) {
+            // if either the action or the balance changes it may indicate that a new action should
+            // be taken as it relates to new or outstanding orders. For a new balance, it may indicate
+            // that there are now enough funds to buy or sell
+            return _(decision).pick(['action', 'balances']).mapValues('v').value();
+        }
+        return _.isEqual(getRelevantChanges(decision1), getRelevantChanges(decision2));
+    })
+    .do(console.log)
+    .map(decisionBase => {
+        if(decisionBase.action.v === 'HOLD') {
+            return {
+                action: 'CANCEL ALL ORDERS'
+            };
+        } else if(decisionBase.action.v === 'BUY') {
+            if(decisionBase.balances.v[bfxTo] > 0) {
+                return {
+                    action: 'BUY',
+                    amount: decisionBase.balances.v[bfxTo] / decisionBase.last.v,
+                    price: decisionBase.last.v
+                };
+            } else {
+                // do nothing, because there isn't enough balance
+            }
+        } else if(decisionBase.action.v === 'SELL') {
+            if(decisionBase.balances.v[bfxFrom] > 0) {
+                return {
+                    action: 'SELL',
+                    amount: -1 * decisionBase.balances.v[bfxFrom],
+                    price: decisionBase.last.v
+                };
+            }
+        }
+    });
+
+orderStream.subscribe(decision => {
+    console.log(decision);
+    if(decision.action === 'CANCEL ALL ORDERS') {
+        // TODO: merge the order id's into the decision so that they can be canceled
+    } else if(decision.action === 'BUY') {
+        series.orderSubject.next({
+            bfxSymbol: bfxSymbol,
+            // the .01 and price modifications are there so that the trade isn't actually
+            // executed and so that if it is that it isn't too bad
+            amount: decision.amount * .01,
+            price: decision.price - (decision.price / 2)
+        });
+    } else if(decision.action === 'SELL') {
+        series.orderSubject.next({
+            bfxSymbol: bfxSymbol,
+            amount: decision.amount * .01,
+            price: decision.price + (decision.price / 2)
+        });
+    }
 });
+
+// TODO: merge in order id's and get cancelation working
+// TODO: run it and let it make a trade!
+// TODO: once a successful trade has been made, start refactoring and getting a test framework set up
+// TODO: start thinking about how decisions and actions will stack in the final product
+// TODO: start thinking about what the streams need to look like to make this support multiple exchanges
