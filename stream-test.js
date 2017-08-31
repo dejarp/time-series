@@ -14,7 +14,7 @@ var fifteenMinutes = 15 * oneMinute;
 var bfxFrom = 'IOT';
 var bfxTo = 'BTC';
 
-var series = bfxTimeSeries(bfxFrom, bfxTo, fiveMinutes);
+var series = bfxTimeSeries(bfxFrom, bfxTo, oneMinute);
 
 var periods = 14;
 var smoothingPeriods = 3;
@@ -44,7 +44,13 @@ function OscillatorStrategy(oscillatorStream, buyLevel, sellLevel) {
         });
 }
 
-var strategyStream = OscillatorStrategy(stochasticDStream, 8, 92);
+var strategyStream = OscillatorStrategy(stochasticDStream, 20, 80);
+
+var decisionStream = Collate({
+    last: series.closes,
+    stochastic: stochasticDStream,
+    balances: series.balances,
+    action: strategyStream});
 
 var balanceStream = Collate({
     price: series.closes,
@@ -69,12 +75,9 @@ var balanceStream = Collate({
             IOT: 0,
             BTC: 1,
         }
-    });
+    }
+);
 
-balanceStream.subscribe(accumulator => {
-    console.log(accumulator)
+decisionStream.subscribe(point => {
+    console.log(point);
 });
-
-// strategyStream.subscribe((point) => {
-//     console.log( `Date: ${point.d}, Value: ${point.v}`);
-// });

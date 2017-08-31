@@ -26,6 +26,10 @@ var bfxTimeFrames = {
 }
 
 module.exports = (bfxFrom, bfxTo, cycleLength, loggingEnabled) => {
+    if(!_.has(bfxTimeFrames, cycleLength)) {
+        throw new Error('cycle length not supported by exchange');
+    }
+
     var bfxPairId = `${bfxFrom}${bfxTo}`;
     var bfxSymbol = `t${bfxPairId}`;
 
@@ -40,10 +44,10 @@ module.exports = (bfxFrom, bfxTo, cycleLength, loggingEnabled) => {
     twentyFourHoursAgo.setTime(nearestCycleStartTime);
     
     var now = new Date();
-    var nextCycleTime = Math.ceil(now / cycleLength) * cycleLength;
+    var nextCycleTime = Math.ceil(now.getTime() / cycleLength) * cycleLength;
     
     var futureCycles = Rx.Observable
-        .timer(nextCycleTime, cycleLength)
+        .timer(new Date(nextCycleTime), cycleLength)
         .map(cyclesSinceTimerStarted => new Date(nextCycleTime + (cycleLength * cyclesSinceTimerStarted)));
     
     var pastCycleCount = Math.floor((now - nearestCycleStartTime) / cycleLength);
@@ -555,7 +559,21 @@ module.exports = (bfxFrom, bfxTo, cycleLength, loggingEnabled) => {
         cycles);
     var bidsTimeSeries = AlignToDates(BfxDataToTimeSeries(bidsDataSource), cycles).distinctUntilChanged(_.isEqual);
     var asksTimeSeries = AlignToDates(BfxDataToTimeSeries(asksDataSource), cycles).distinctUntilChanged(_.isEqual);
-    var balancesTimeSeries = AlignToDates(BfxDataToTimeSeries(balancesDataSource), cycles);
+    
+    
+    function CarryForward(timeSeries, cycles) {
+        return Rx.Observable
+            .combineLatest(cycles, timeSeries)
+            .map(combination => ({
+                d: combination[0],
+                v: combination[1].v
+            }));
+    }
+
+    var balancesTimeSeries = CarryForward(
+        BfxDataToTimeSeries(balancesDataSource), 
+        cycles
+    );
 
     function placeLimitOrder(symbol, amount, price) {
         var cid = new Date().getTime();
