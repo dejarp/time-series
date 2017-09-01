@@ -1,8 +1,14 @@
+// @flow
+
 const _ = require('lodash');
 const Rx = require('rxjs');
 const request = require('request');
-const AlignToDates = require('./align-to-dates');
-const BFX = require('bitfinex-api-node')
+const AlignToDates = require('../../align-to-dates');
+const BFX = require('bitfinex-api-node');
+const BinHigh = require('../../bin-high');
+const BinLow = require('../../bin-low');
+const CarryForward = require('../../carry-forward');
+
 
 const API_KEY = 'g0iI9DsJmEuLnZDIHJFXsm1DaJpqvA4TDQZlOslyYjA'
 const API_SECRET = 'ONXjRxvFdy7XgPIO6HBn2gQx2sjLb3YGdLRc60etZPc'
@@ -25,7 +31,7 @@ var bfxTimeFrames = {
     // be no direct translation.
 }
 
-module.exports = (bfxFrom, bfxTo, cycleLength, loggingEnabled) => {
+module.exports = (bfxFrom: string, bfxTo: string, cycleLength: number, loggingEnabled: boolean) => {
     if(!_.has(bfxTimeFrames, cycleLength)) {
         throw new Error('cycle length not supported by exchange');
     }
@@ -580,9 +586,6 @@ module.exports = (bfxFrom, bfxTo, cycleLength, loggingEnabled) => {
         }));
     }
 
-    const BinHigh = require('./bin-high');
-    const BinLow = require('./bin-low');
-
     var priceOpenTimeSeries = AlignToDates(BfxDataToTimeSeries(priceOpenDataSource), cycles);
     var priceCloseTimeSeries = AlignToDates(BfxDataToTimeSeries(priceCloseDataSource), cycles);
     // Note: there is a bug here with concat and how it interacts with bitfinex api. The real time
@@ -598,8 +601,6 @@ module.exports = (bfxFrom, bfxTo, cycleLength, loggingEnabled) => {
         cycles);
     var bidsTimeSeries = AlignToDates(BfxDataToTimeSeries(bidsDataSource), cycles).distinctUntilChanged(_.isEqual);
     var asksTimeSeries = AlignToDates(BfxDataToTimeSeries(asksDataSource), cycles).distinctUntilChanged(_.isEqual);
-
-    const CarryForward = require('./carry-forward');
 
     var balancesTimeSeries = AlignToDates(
         CarryForward(
