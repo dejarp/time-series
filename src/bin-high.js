@@ -1,10 +1,13 @@
-const _ = require('lodash');
-const BinWindow = require('./bin-window');
-
-module.exports = function BinHigh(timeSeries) {
-    return BinWindow(timeSeries)
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const _ = require("lodash");
+const bin_window_1 = require("./bin-window");
+function BinHigh(timeSeries) {
+    return bin_window_1.BinWindow(timeSeries)
         .map(point => ({
-            d: point.d,
-            v: _.max(point.v)
-        }));
-};
+        d: point.d,
+        v: _.max(point.v)
+    }));
+}
+exports.BinHigh = BinHigh;
+;

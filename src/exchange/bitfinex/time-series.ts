@@ -1,14 +1,12 @@
-// @flow
-
-const _ = require('lodash');
-const Rx = require('rxjs');
-const request = require('request');
-const AlignToDates = require('../../align-to-dates');
-const BFX = require('bitfinex-api-node');
-const BinHigh = require('../../bin-high');
-const BinLow = require('../../bin-low');
-const CarryForward = require('../../carry-forward');
-
+import * as _ from 'lodash';
+import * as Rx from 'rxjs';
+import * as request from 'request';
+import { AlignToDates } from '../../align-to-dates';
+import * as BFX from 'bitfinex-api-node';
+import { BinHigh } from '../../bin-high';
+import { BinLow } from '../../bin-low';
+import { CarryForward } from '../../carry-forward';
+import { TimeSeriesPoint } from '../../time-series-point';
 
 const API_KEY = 'g0iI9DsJmEuLnZDIHJFXsm1DaJpqvA4TDQZlOslyYjA'
 const API_SECRET = 'ONXjRxvFdy7XgPIO6HBn2gQx2sjLb3YGdLRc60etZPc'
@@ -31,7 +29,7 @@ var bfxTimeFrames = {
     // be no direct translation.
 }
 
-module.exports = (bfxFrom: string, bfxTo: string, cycleLength: number, loggingEnabled: boolean) => {
+export function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLength: number, loggingEnabled: boolean) {
     if(!_.has(bfxTimeFrames, cycleLength)) {
         throw new Error('cycle length not supported by exchange');
     }
@@ -56,7 +54,7 @@ module.exports = (bfxFrom: string, bfxTo: string, cycleLength: number, loggingEn
         .timer(new Date(nextCycleTime), cycleLength)
         .map(cyclesSinceTimerStarted => new Date(nextCycleTime + (cycleLength * cyclesSinceTimerStarted)));
     
-    var pastCycleCount = Math.floor((now - nearestCycleStartTime) / cycleLength);
+    var pastCycleCount = Math.floor((now.getTime() - nearestCycleStartTime) / cycleLength);
     var pastCycles = Rx.Observable
         .range(1, pastCycleCount)
         .map(cycleNumber => new Date(cycleNumber * cycleLength + nearestCycleStartTime));
@@ -142,7 +140,7 @@ module.exports = (bfxFrom: string, bfxTo: string, cycleLength: number, loggingEn
         asks: []
     };
 
-    var orderbookDataSource = new Rx.Subject();
+    var orderbookDataSource: Rx.Subject<TimeSeriesPoint<any>> = new Rx.Subject();
     var ordersTimeSeries = new Rx.Subject();
     bfxAPI.ws.on('message', (msg) => {
         var messageTimeStamp = new Date();
@@ -638,7 +636,7 @@ module.exports = (bfxFrom: string, bfxTo: string, cycleLength: number, loggingEn
         bfxAPI.ws.submitOrder(order);
     }
 
-    var orderSubject = new Rx.Subject();
+    var orderSubject: Rx.Subject<any> = new Rx.Subject();
     orderSubject.subscribe(order => {
         placeLimitOrder(order.bfxSymbol, order.amount, order.price);
     });
@@ -671,7 +669,7 @@ module.exports = (bfxFrom: string, bfxTo: string, cycleLength: number, loggingEn
         cancelMultipleOrders(orderIds);
     });
 
-    var orderCancelSubject = new Rx.Subject();
+    var orderCancelSubject: Rx.Subject<any> = new Rx.Subject();
     orderCancelSubject.subscribe(orderCancellation => {
         cancelOrder(orderCancellation.cid);
     });

@@ -1,7 +1,11 @@
-module.exports = function MultiplyBy(timeSeries, multiplier) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function MultiplyBy(timeSeries, multiplier) {
     return timeSeries
         .map(point => ({
-           d: point.d,
-           v: point.v * multiplier
-        }));
-};
+        d: point.d,
+        v: point.v * multiplier
+    }));
+}
+exports.MultiplyBy = MultiplyBy;
+;

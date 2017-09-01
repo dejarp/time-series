@@ -1,26 +1,21 @@
-const Rx = require('rxjs');
-const Collate = require('./collate');
-const MovingLow = require('./moving-low');
-const MovingHigh = require('./moving-high');
-const Lag = require('./lag');
-
-module.exports = function StochasticK(closeSeries, highSeries, lowSeries, periods) {
-    return Rx.Observable
-        .zip(
-            closeSeries.skip(periods - 1), 
-            MovingLow(lowSeries, periods), 
-            MovingHigh(highSeries, periods)
-        )
-        .map(results => {
-            var close = results[0];
-            var low = results[1];
-            var high = results[2];
-            if(close.d.getTime() !== low.d.getTime()) {
-                throw new Error('misaligned');
-            }
-            return {
-                d: close.d,
-                v: 100 * (close.v - low.v) / (high.v - low.v)
-            };
-        });
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const collate_atomic_1 = require("./collate-atomic");
+const moving_low_1 = require("./moving-low");
+const moving_high_1 = require("./moving-high");
+function StochasticK(closeSeries, highSeries, lowSeries, periods) {
+    return collate_atomic_1.CollateAtomic([
+        closeSeries.skip(periods - 1),
+        moving_low_1.MovingLow(lowSeries, periods),
+        moving_high_1.MovingHigh(highSeries, periods)
+    ], (close, lowestLow, highestHigh) => {
+        if (close.d.getTime() !== lowestLow.d.getTime()) {
+            throw new Error('misaligned');
+        }
+        return {
+            d: close.d,
+            v: 100 * (close.v - lowestLow.v) / (highestHigh.v - lowestLow.v)
+        };
+    });
 }
+exports.StochasticK = StochasticK;
