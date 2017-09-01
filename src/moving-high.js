@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const _ = require("lodash");
 const moving_window_1 = require("./moving-window");
 function MovingHigh(timeSeries, periods) {
-    return moving_window_1.MovingWindow(timeSeries, periods)
+    return moving_window_1.default(timeSeries, periods)
         .map(window => {
         return {
             d: _.last(window).d,
@@ -11,4 +11,4 @@ function MovingHigh(timeSeries, periods) {
         };
     });
 }
-exports.MovingHigh = MovingHigh;
+exports.default = MovingHigh;

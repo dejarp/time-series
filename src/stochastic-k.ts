@@ -1,10 +1,10 @@
-import { CollateAtomic } from './collate-atomic';
-import { MovingLow } from './moving-low';
-import { MovingHigh } from './moving-high';
-import { Lag } from './lag';
-import { TimeSeriesPoint } from './time-series-point';
+import CollateAtomic from './collate-atomic';
+import MovingLow from './moving-low';
+import MovingHigh from './moving-high';
+import Lag from './lag';
+import TimeSeriesPoint from './time-series-point';
 
-export function StochasticK(closeSeries, highSeries, lowSeries, periods) {
+export default function StochasticK(closeSeries, highSeries, lowSeries, periods) {
     return CollateAtomic([
         closeSeries.skip(periods - 1),
         MovingLow(lowSeries, periods),

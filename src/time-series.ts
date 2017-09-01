@@ -1,4 +1,6 @@
 import * as Rx from 'rxjs';
-import {TimeSeriesPoint} from './time-series-point';
+import TimeSeriesPoint from './time-series-point';
 
-export type TimeSeries<T> = Rx.Observable<TimeSeriesPoint<T>>;
+type TimeSeries<T> = Rx.Observable<TimeSeriesPoint<T>>;
+
+export default TimeSeries;

@@ -1,4 +1,4 @@
-export function MultiplyBy(timeSeries, multiplier) {
+export default function MultiplyBy(timeSeries, multiplier) {
     return timeSeries
         .map(point => ({
            d: point.d,

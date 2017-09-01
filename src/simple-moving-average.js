@@ -6,10 +6,10 @@ function mean(points) {
     return _(points).map('v').sum() / points.length;
 }
 function SimpleMovingAverage(timeSeries, periods) {
-    return moving_window_1.MovingWindow(timeSeries, periods)
+    return moving_window_1.default(timeSeries, periods)
         .map(points => ({
         d: _.last(points).d,
         v: mean(points)
     }));
 }
-exports.SimpleMovingAverage = SimpleMovingAverage;
+exports.default = SimpleMovingAverage;

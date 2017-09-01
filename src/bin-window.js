@@ -16,5 +16,5 @@ function BinWindow(timeSeries) {
         v: []
     });
 }
-exports.BinWindow = BinWindow;
+exports.default = BinWindow;
 ;

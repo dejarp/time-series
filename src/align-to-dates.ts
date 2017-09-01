@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-export function AlignToDates(timeSeries, dates) {
+export default function AlignToDates(timeSeries, dates) {
     return dates
         .merge(timeSeries)
         .scan((accumulator, dateOrPoint) => {

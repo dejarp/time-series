@@ -1,8 +1,8 @@
 // @flow
 
-import { Collate } from './collate';
+import Collate from './collate';
 
-export function Subtract(minuendTimeSeries, subtrahendTimeSeries) {
+export default function Subtract(minuendTimeSeries, subtrahendTimeSeries) {
     return Collate({ 
         minuend: minuendTimeSeries, 
         subtrahend: subtrahendTimeSeries })

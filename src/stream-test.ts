@@ -2,11 +2,11 @@
 
 import * as _ from 'lodash';
 import * as Rx from 'rxjs';
-import { BfxTimeSeries } from './exchange/bitfinex/time-series';
-import { BollingerBandLower } from './bollinger-band-lower';
-import { StochasticD } from './stochastic-d';
-import { StochasticK } from './stochastic-k';
-import { Collate } from './collate';
+import BfxTimeSeries from './exchange/bitfinex/time-series';
+import BollingerBandLower from './bollinger-band-lower';
+import StochasticD from './stochastic-d';
+import StochasticK from './stochastic-k';
+import Collate from './collate';
 import Periods from './periods';
 
 var bfxFrom = 'IOT';

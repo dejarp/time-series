@@ -9,4 +9,4 @@ function CarryForward(timeSeries, cycles) {
         v: combination[1].v
     }));
 }
-exports.CarryForward = CarryForward;
+exports.default = CarryForward;

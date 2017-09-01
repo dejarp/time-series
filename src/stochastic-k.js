@@ -4,10 +4,10 @@ const collate_atomic_1 = require("./collate-atomic");
 const moving_low_1 = require("./moving-low");
 const moving_high_1 = require("./moving-high");
 function StochasticK(closeSeries, highSeries, lowSeries, periods) {
-    return collate_atomic_1.CollateAtomic([
+    return collate_atomic_1.default([
         closeSeries.skip(periods - 1),
-        moving_low_1.MovingLow(lowSeries, periods),
-        moving_high_1.MovingHigh(highSeries, periods)
+        moving_low_1.default(lowSeries, periods),
+        moving_high_1.default(highSeries, periods)
     ], (close, lowestLow, highestHigh) => {
         if (close.d.getTime() !== lowestLow.d.getTime()) {
             throw new Error('misaligned');
@@ -18,4 +18,4 @@ function StochasticK(closeSeries, highSeries, lowSeries, periods) {
         };
     });
 }
-exports.StochasticK = StochasticK;
+exports.default = StochasticK;

@@ -20,5 +20,5 @@ function MovingWindow(timeSeries, periods) {
         .filter(window => window.length === periods);
     //.do(window => console.log(window));
 }
-exports.MovingWindow = MovingWindow;
+exports.default = MovingWindow;
 ;

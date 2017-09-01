@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import * as Rx from 'rxjs';
 
-export function Collate(multipleTimeSeries) {
+export default function Collate(multipleTimeSeries) {
     var wrappedTimeSeries = _(multipleTimeSeries)
         .mapValues((timeSeries, timeSeriesName) => {
             return timeSeries

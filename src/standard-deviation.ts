@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { MovingWindow } from './moving-window';
+import MovingWindow from './moving-window';
 
 function mean(points) {
     return _(points).map('v').sum() / points.length;
@@ -12,7 +12,7 @@ function stddev(points) {
     return standardDeviation;
 }
 
-export function StandardDeviation(timeSeries, periods) {
+export default function StandardDeviation(timeSeries, periods) {
     return MovingWindow(timeSeries, periods)
         .map(points => ({
             d: _.last(points).d,

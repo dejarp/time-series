@@ -49,5 +49,5 @@ function Collate(multipleTimeSeries) {
         .map(accumulator => accumulator.frameToEmit)
         .filter(frame => frame !== null);
 }
-exports.Collate = Collate;
+exports.default = Collate;
 ;

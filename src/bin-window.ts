@@ -1,4 +1,4 @@
-export function BinWindow(timeSeries) {
+export default function BinWindow(timeSeries) {
     return timeSeries
         .scan((accumulator, point) => {
             if(accumulator.d === null || accumulator.d.getTime() !== point.d.getTime()) {

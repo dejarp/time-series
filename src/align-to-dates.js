@@ -78,4 +78,4 @@ function AlignToDates(timeSeries, dates) {
     })
         .flatMap(accumulator => accumulator.pointsToEmit);
 }
-exports.AlignToDates = AlignToDates;
+exports.default = AlignToDates;

@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const collate_1 = require("./collate");
 function Subtract(minuendTimeSeries, subtrahendTimeSeries) {
-    return collate_1.Collate({
+    return collate_1.default({
         minuend: minuendTimeSeries,
         subtrahend: subtrahendTimeSeries
     })
@@ -12,5 +12,5 @@ function Subtract(minuendTimeSeries, subtrahendTimeSeries) {
         v: collection.minuend.v - collection.subtrahend.v
     }));
 }
-exports.Subtract = Subtract;
+exports.default = Subtract;
 ;

@@ -9,10 +9,10 @@ const periods_1 = require("./periods");
 var bfxFrom = 'IOT';
 var bfxTo = 'BTC';
 var bfxSymbol = `t${bfxFrom}${bfxTo}`;
-var series = time_series_1.BfxTimeSeries(bfxFrom, bfxTo, periods_1.default.fiveMinutes, false);
+var series = time_series_1.default(bfxFrom, bfxTo, periods_1.default.fiveMinutes, false);
 var periods = 14;
 var smoothingPeriods = 3;
-var stochasticDStream = stochastic_d_1.StochasticD(series.closes, series.highs, series.lows, periods, smoothingPeriods)
+var stochasticDStream = stochastic_d_1.default(series.closes, series.highs, series.lows, periods, smoothingPeriods)
     .do(point => console.log(point.v));
 function OscillatorStrategy(oscillatorStream, buyLevel, sellLevel) {
     return oscillatorStream
@@ -34,14 +34,14 @@ function OscillatorStrategy(oscillatorStream, buyLevel, sellLevel) {
     });
 }
 var strategyStream = OscillatorStrategy(stochasticDStream, 15, 85);
-var decisionStream = collate_1.Collate({
+var decisionStream = collate_1.default({
     last: series.closes,
     stochastic: stochasticDStream,
     balances: series.balances,
     activeOrders: series.activeOrders,
     action: strategyStream
 });
-var balanceStream = collate_1.Collate({
+var balanceStream = collate_1.default({
     price: series.closes,
     action: strategyStream
 })

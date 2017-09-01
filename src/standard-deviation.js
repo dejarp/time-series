@@ -12,11 +12,11 @@ function stddev(points) {
     return standardDeviation;
 }
 function StandardDeviation(timeSeries, periods) {
-    return moving_window_1.MovingWindow(timeSeries, periods)
+    return moving_window_1.default(timeSeries, periods)
         .map(points => ({
         d: _.last(points).d,
         v: stddev(points)
     }));
 }
-exports.StandardDeviation = StandardDeviation;
+exports.default = StandardDeviation;
 ;

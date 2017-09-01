@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-export function MovingWindow(timeSeries, periods) {
+export default function MovingWindow(timeSeries, periods) {
     return timeSeries
         .scan((window, point) => {
             if(_.isEmpty(window)) {

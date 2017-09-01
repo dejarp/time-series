@@ -1,12 +1,12 @@
 import * as _ from 'lodash';
 import * as Rx from 'rxjs';
 import * as request from 'request';
-import { AlignToDates } from '../../align-to-dates';
+import AlignToDates from '../../align-to-dates';
 import * as BFX from 'bitfinex-api-node';
-import { BinHigh } from '../../bin-high';
-import { BinLow } from '../../bin-low';
-import { CarryForward } from '../../carry-forward';
-import { TimeSeriesPoint } from '../../time-series-point';
+import BinHigh from '../../bin-high';
+import BinLow from '../../bin-low';
+import CarryForward from '../../carry-forward';
+import TimeSeriesPoint from '../../time-series-point';
 
 const API_KEY = 'g0iI9DsJmEuLnZDIHJFXsm1DaJpqvA4TDQZlOslyYjA'
 const API_SECRET = 'ONXjRxvFdy7XgPIO6HBn2gQx2sjLb3YGdLRc60etZPc'
@@ -29,7 +29,7 @@ var bfxTimeFrames = {
     // be no direct translation.
 }
 
-export function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLength: number, loggingEnabled: boolean) {
+export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLength: number, loggingEnabled: boolean) {
     if(!_.has(bfxTimeFrames, cycleLength)) {
         throw new Error('cycle length not supported by exchange');
     }

@@ -7,5 +7,5 @@ function MultiplyBy(timeSeries, multiplier) {
         v: point.v * multiplier
     }));
 }
-exports.MultiplyBy = MultiplyBy;
+exports.default = MultiplyBy;
 ;
