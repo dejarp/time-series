@@ -1,13 +1,11 @@
-// @flow
-
 import * as _ from 'lodash';
 import * as Rx from 'rxjs';
-import BfxTimeSeries from './exchange/bitfinex/time-series';
-import BollingerBandLower from './bollinger-band-lower';
-import StochasticD from './stochastic-d';
-import StochasticK from './stochastic-k';
-import Collate from './collate';
-import Periods from './periods';
+import BfxTimeSeries from './src/exchange/bitfinex/time-series';
+import BollingerBandLower from './src/bollinger-band-lower';
+import StochasticD from './src/stochastic-d';
+import StochasticK from './src/stochastic-k';
+import Collate from './src/collate';
+import Periods from './src/periods';
 
 var bfxFrom = 'IOT';
 var bfxTo = 'BTC';

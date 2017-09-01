@@ -6,6 +6,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/lodash": "^4.14.74",
     "@types/rx": "^4.1.1",
     "bitfinex-api-node": "^1.0.4",
     "lodash": "^4.17.4",

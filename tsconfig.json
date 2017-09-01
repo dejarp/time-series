@@ -1,9 +1,11 @@
 {
     "compilerOptions": {
         "module": "commonjs",
-        "target": "es2015"
+        "target": "es2015",
+        "noEmitOnError": false
     },
     "include": [
+        "./stream-test.js",
         "src/**/*.ts"
     ]
 }
