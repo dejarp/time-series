@@ -1,4 +1,4 @@
-import TimeSeries from './core/time-series';
+import TimeSeries from '../time-series';
 
 export default function MultiplyBy(timeSeries: TimeSeries<number>, multiplier: number) {
     return timeSeries

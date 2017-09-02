@@ -5,7 +5,6 @@
         "noEmitOnError": false
     },
     "include": [
-        "./stream-test.js",
         "src/**/*.ts"
     ]
 }

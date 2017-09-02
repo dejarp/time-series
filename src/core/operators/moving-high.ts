@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 import MovingWindow from './moving-window';
-import TimeSeries from './core/time-series';
+import TimeSeries from '../time-series';
 
 export default function MovingHigh<T>(timeSeries: TimeSeries<T>, periods: number) : TimeSeries<T> {
     return MovingWindow(timeSeries, periods)

@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 import MovingWindow from './moving-window';
-import TimeSeries from './core/time-series';
+import TimeSeries from '../time-series';
 
 function mean(points) : number {
     return _(points).map('v').sum() / points.length;

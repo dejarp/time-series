@@ -1,11 +1,11 @@
 import * as _ from 'lodash';
 import * as Rx from 'rxjs';
 import * as request from 'request';
-import AlignToDates from '../../align-to-dates';
+import AlignToDates from '../../core/operators/align-to-dates';
 import * as BFX from 'bitfinex-api-node';
-import BinHigh from '../../bin-high';
-import BinLow from '../../bin-low';
-import CarryForward from '../../carry-forward';
+import BinHigh from '../../core/operators/bin-high';
+import BinLow from '../../core/operators/bin-low';
+import CarryForward from '../../core/operators/carry-forward';
 import TimeSeriesPoint from '../../core/time-series-point';
 
 const API_KEY = 'g0iI9DsJmEuLnZDIHJFXsm1DaJpqvA4TDQZlOslyYjA'

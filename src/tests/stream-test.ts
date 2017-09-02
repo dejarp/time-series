@@ -1,11 +1,11 @@
 import * as _ from 'lodash';
 import * as Rx from 'rxjs';
-import BfxTimeSeries from './src/exchange/bitfinex/time-series';
-import BollingerBandLower from './src/bollinger-band-lower';
-import StochasticD from './src/stochastic-d';
-import StochasticK from './src/stochastic-k';
-import Collate from './src/collate';
-import Periods from './src/periods';
+import BfxTimeSeries from '../exchanges/bitfinex/time-series';
+import BollingerBandLower from '../indicators/bollinger-band-lower';
+import StochasticD from '../indicators/stochastic-d';
+import StochasticK from '../indicators/stochastic-k';
+import Collate from '../core/operators/collate';
+import Periods from '../periods';
 
 var bfxFrom = 'IOT';
 var bfxTo = 'BTC';
@@ -57,14 +57,14 @@ var balanceStream = Collate({
     price: series.closes,
     action: strategyStream})
     .scan((accumulator, collection) => {
-        accumulator.date = collection.price.d;
-        if(accumulator.action !== collection.action.v) {
-            accumulator.action = collection.action.v;
-            if(collection.action.v === 'BUY') {
-                accumulator.balances.IOT += accumulator.balances.BTC / collection.price.v;
+        accumulator.date = collection.v.price.d;
+        if(accumulator.action !== collection.v.action.v) {
+            accumulator.action = collection.v.action.v;
+            if(collection.v.action.v === 'BUY') {
+                accumulator.balances.IOT += accumulator.balances.BTC / collection.v.price.v;
                 accumulator.balances.BTC = 0;
-            } else if(collection.action.v === 'SELL') {
-                accumulator.balances.BTC += accumulator.balances.IOT * collection.price.v;
+            } else if(collection.v.action.v === 'SELL') {
+                accumulator.balances.BTC += accumulator.balances.IOT * collection.v.price.v;
                 accumulator.balances.IOT = 0;
             }
         }
@@ -90,29 +90,29 @@ var orderStream = decisionStream
         return _.isEqual(getRelevantChanges(decision1), getRelevantChanges(decision2));
     })
     .map(decisionBase => {
-        if(decisionBase.action.v === 'HOLD') {
+        if(decisionBase.v.action.v === 'HOLD') {
             return {
                 action: 'CANCEL ALL ORDERS',
-                orderIds: _(decisionBase.activeOrders.v).values().map('id').value()
+                orderIds: _(decisionBase.v.activeOrders.v).values().map('id').value()
             };
-        } else if(decisionBase.action.v === 'BUY') {
-            if(decisionBase.balances.v[bfxTo] > 0) {
+        } else if(decisionBase.v.action.v === 'BUY') {
+            if(decisionBase.v.balances.v[bfxTo] > 0) {
                 return {
                     action: 'BUY',
                     // Multiply by .999 to account for fees, which would make the order invalid
                     // TODO: factor in the fees using a different stream
-                    amount: .999 * decisionBase.balances.v[bfxTo] / decisionBase.last.v,
-                    price: decisionBase.last.v
+                    amount: .999 * decisionBase.v.balances.v[bfxTo] / decisionBase.v.last.v,
+                    price: decisionBase.v.last.v
                 };
             } else {
                 // do nothing, because there isn't enough balance
             }
-        } else if(decisionBase.action.v === 'SELL') {
-            if(decisionBase.balances.v[bfxFrom] > 0) {
+        } else if(decisionBase.v.action.v === 'SELL') {
+            if(decisionBase.v.balances.v[bfxFrom] > 0) {
                 return {
                     action: 'SELL',
-                    amount: -1 * decisionBase.balances.v[bfxFrom],
-                    price: decisionBase.last.v
+                    amount: -1 * decisionBase.v.balances.v[bfxFrom],
+                    price: decisionBase.v.last.v
                 };
             } else {
                 // do nothing, not enough balance
@@ -158,8 +158,6 @@ buySellCancelStream.subscribe(decision => {
     }
 });
 
-// TODO: run it and let it make a trade (buy and sell)!
-// TODO: once a successful trade has been made, start refactoring and getting a test framework set up
 // TODO: start thinking about how decisions and actions will stack in the final product
 // TODO: start thinking about what the streams need to look like to make this support multiple exchanges
 // TODO: factor in fees

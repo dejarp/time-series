@@ -1,5 +1,3 @@
-// @flow
-
 import Collate from './collate';
 
 export default function Subtract(minuendTimeSeries, subtrahendTimeSeries) {
