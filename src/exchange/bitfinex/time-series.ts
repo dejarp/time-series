@@ -123,7 +123,7 @@ export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLengt
         }
         _(trades)
             .tail()
-            .forEachRight((trade) => {
+            .forEachRight((trade: any) => {
                 var date = new Date(trade.MTS);
                 var price = trade.PRICE;
                 var streamPoint = {
@@ -400,7 +400,7 @@ export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLengt
             }
         };
 
-        function getMessageMetadata(type) {
+        function getMessageMetadata(type) : any {
             return _.get(messages, type, { 
                 name: 'Unknown', 
                 handler: _.noop
@@ -436,7 +436,7 @@ export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLengt
                     _.forEach(orderbookInitialStates, (obis) => {
                         var price = obis[0];
                         var count = obis[1];
-                        var amount = obis[2];
+                        var amount: any = obis[2];
     
                         if(amount > 0) {
                             var index = _.sortedIndexBy(orderbook.bids, {price: price}, bid => bid.price);

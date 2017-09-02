@@ -7,7 +7,7 @@ export default function Subtract(minuendTimeSeries, subtrahendTimeSeries) {
         minuend: minuendTimeSeries, 
         subtrahend: subtrahendTimeSeries })
         .map(collection => ({
-            d: collection.minuend.d,
-            v: collection.minuend.v - collection.subtrahend.v
+            d: collection.d,
+            v: collection.v.minuend.v - collection.v.subtrahend.v
         }))
 };

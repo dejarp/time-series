@@ -1,10 +1,11 @@
 import * as _ from 'lodash';
 import MovingWindow from './moving-window';
+import TimeSeries from './time-series';
 
-export default function MovingLow(timeSeries, periods) {
+export default function MovingLow<T>(timeSeries: TimeSeries<T>, periods: number) : TimeSeries<T> {
     return MovingWindow(timeSeries, periods)
         .map(window => ({
-            d: _.last(window).d,
-            v: _.minBy(window, point => point.v).v
+            d: window.d,
+            v: _.minBy(window.v, point => point.v).v
         }));
 };

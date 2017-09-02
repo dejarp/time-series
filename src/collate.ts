@@ -1,16 +1,16 @@
 import * as _ from 'lodash';
 import * as Rx from 'rxjs';
+import TimeSeries from './time-series';
+import TimeSeriesPoint from './time-series-point';
 
-export default function Collate(multipleTimeSeries) {
-    var wrappedTimeSeries = _(multipleTimeSeries)
-        .mapValues((timeSeries, timeSeriesName) => {
-            return timeSeries
-                .map(point => ({
-                    name: timeSeriesName,
-                    point: point
-                }));
-        })
-        .value();
+export default function Collate(timeSeries: {[key: string]: TimeSeries<any>}) : TimeSeries<{[key: string]: TimeSeriesPoint<any>}> {
+    var wrappedTimeSeries = _.map(timeSeries, (timeSeries, timeSeriesName) => {
+        return timeSeries
+            .map(point => ({
+                name: timeSeriesName,
+                point: point
+            }));
+    });
 
     var timeSeriesNames = _.keys(wrappedTimeSeries);
 

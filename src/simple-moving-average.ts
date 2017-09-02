@@ -1,16 +1,15 @@
 import * as _ from 'lodash';
 import MovingWindow from './moving-window';
+import TimeSeries from './time-series';
 
-function mean(points) {
+function mean(points) : number {
     return _(points).map('v').sum() / points.length;
 }
 
-export default function SimpleMovingAverage(timeSeries, periods) {
+export default function SimpleMovingAverage(timeSeries: TimeSeries<number>, periods: number) : TimeSeries<number> {
     return MovingWindow(timeSeries, periods)
-        .map(points => ({
-            d: _.last(points).d,
-            v: mean(points)
-        }))
-        //.do(point => console.log(`SMA: Date: ${point.d}, Value: ${point.v}`))
-        ;
+        .map(window => ({
+            d: window.d,
+            v: mean(window.v)
+        }));
 }

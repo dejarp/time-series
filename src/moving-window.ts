@@ -1,8 +1,10 @@
 import * as _ from 'lodash';
+import TimeSeries from './time-series';
+import TimeSeriesPoint from './time-series-point';
 
-export default function MovingWindow(timeSeries, periods) {
+export default function MovingWindow<T>(timeSeries: TimeSeries<T>, periods: number) : TimeSeries<TimeSeriesPoint<T>[]> {
     return timeSeries
-        .scan((window, point) => {
+        .scan((window: TimeSeriesPoint<T>[], point: TimeSeriesPoint<T>) => {
             if(_.isEmpty(window)) {
                 window.push(point);
             } else {
@@ -15,5 +17,8 @@ export default function MovingWindow(timeSeries, periods) {
             return window;
         }, [])
         .filter(window => window.length === periods)
-        //.do(window => console.log(window));
+        .map(window => ({
+            d: _.last(window).d,
+            v: window
+        }))
 };

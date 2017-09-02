@@ -1,9 +1,10 @@
 import MovingWindow from './moving-window';
+import TimeSeries from './time-series';
 
-export default function Lag(timeSeries, periods) {
+export default function Lag<T>(timeSeries: TimeSeries<T>, periods) : TimeSeries<T> {
     return MovingWindow(timeSeries, periods + 1)
         .map(window => ({
-            d: window[window.length-1].d,
-            v: window[0].v
+            d: window.d,
+            v: window.v[0].v
         }))
 };
