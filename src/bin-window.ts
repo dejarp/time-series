@@ -1,4 +1,7 @@
-export default function BinWindow(timeSeries) {
+import TimeSeries from './core/time-series.js';
+import TimeSeriesPoint from './core/time-series-point.js';
+
+export default function BinWindow<T>(timeSeries: TimeSeries<T>) : TimeSeries<T[]>{
     return timeSeries
         .scan((accumulator, point) => {
             if(accumulator.d === null || accumulator.d.getTime() !== point.d.getTime()) {
@@ -9,7 +12,7 @@ export default function BinWindow(timeSeries) {
             }
             return accumulator;
         }, {
-            d: null,
+            d: new Date(0),
             v: []
         });
 };

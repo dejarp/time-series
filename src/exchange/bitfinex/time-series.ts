@@ -6,7 +6,7 @@ import * as BFX from 'bitfinex-api-node';
 import BinHigh from '../../bin-high';
 import BinLow from '../../bin-low';
 import CarryForward from '../../carry-forward';
-import TimeSeriesPoint from '../../time-series-point';
+import TimeSeriesPoint from '../../core/time-series-point';
 
 const API_KEY = 'g0iI9DsJmEuLnZDIHJFXsm1DaJpqvA4TDQZlOslyYjA'
 const API_SECRET = 'ONXjRxvFdy7XgPIO6HBn2gQx2sjLb3YGdLRc60etZPc'

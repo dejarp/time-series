@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
-import TimeSeries from './time-series';
-import TimeSeriesPoint from './time-series-point';
+import TimeSeries from './core/time-series';
+import TimeSeriesPoint from './core/time-series-point';
 
 export default function MovingWindow<T>(timeSeries: TimeSeries<T>, periods: number) : TimeSeries<TimeSeriesPoint<T>[]> {
     return timeSeries

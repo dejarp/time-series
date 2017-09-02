@@ -2,7 +2,7 @@ import CollateAtomic from './collate-atomic';
 import MovingLow from './moving-low';
 import MovingHigh from './moving-high';
 import Lag from './lag';
-import TimeSeriesPoint from './time-series-point';
+import TimeSeriesPoint from './core/time-series-point';
 
 export default function StochasticK(closeSeries, highSeries, lowSeries, periods) {
     return CollateAtomic([

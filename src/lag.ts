@@ -1,5 +1,5 @@
 import MovingWindow from './moving-window';
-import TimeSeries from './time-series';
+import TimeSeries from './core/time-series';
 
 export default function Lag<T>(timeSeries: TimeSeries<T>, periods) : TimeSeries<T> {
     return MovingWindow(timeSeries, periods + 1)
