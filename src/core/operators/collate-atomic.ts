@@ -4,5 +4,7 @@ import TimeSeries from '../time-series';
 import TimeSeriesPoint from '../time-series-point';
 
 export default function CollateAtomic(timeSeries: TimeSeries<any>[], resultSelector: (...inputs: TimeSeriesPoint<any>[]) => TimeSeriesPoint<any>) : TimeSeries<any> {
-    return Rx.Observable.zip(timeSeries, resultSelector);
+    let zipArguments : any[] = timeSeries;
+    zipArguments.push(resultSelector);
+    return _.spread(Rx.Observable.zip)(zipArguments);
 }

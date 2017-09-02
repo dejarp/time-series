@@ -1,6 +1,8 @@
 import * as _ from 'lodash';
+import * as Rx from 'rxjs';
+import TimeSeries from '../time-series';
 
-export default function AlignToDates(timeSeries, dates) {
+export default function AlignToDates<T>(timeSeries: TimeSeries<T>, dates: Rx.Observable<Date>) : TimeSeries<T>{
     return dates
         .merge(timeSeries)
         .scan((accumulator, dateOrPoint) => {

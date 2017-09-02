@@ -2,7 +2,13 @@
     "compilerOptions": {
         "module": "commonjs",
         "target": "es2015",
-        "noEmitOnError": false
+        "noEmitOnError": false,
+        "typeRoots": [
+            "./node_modules/@types"
+        ],
+        "types": [
+            "rx"
+        ]
     },
     "include": [
         "src/**/*.ts"

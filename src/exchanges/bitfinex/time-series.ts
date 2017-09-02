@@ -1,121 +1,37 @@
 import * as _ from 'lodash';
 import * as Rx from 'rxjs';
-import * as request from 'request';
 import AlignToDates from '../../core/operators/align-to-dates';
 import * as BFX from 'bitfinex-api-node';
 import BinHigh from '../../core/operators/bin-high';
 import BinLow from '../../core/operators/bin-low';
+import BinOpen from '../../core/operators/bin-open';
+import BinClose from '../../core/operators/bin-close';
 import CarryForward from '../../core/operators/carry-forward';
+import TimeSeries from '../../core/time-series';
 import TimeSeriesPoint from '../../core/time-series-point';
+import BinByCycleLength from '../../core/bin-by-cycle-length';
+import PriceOpenHistorical from './price-open-historical';
+import PriceCloseHistorical from './price-close-historical';
+import PriceLowHistorical from './price-low-historical';
+import PriceHighHistorical from './price-high-historical';
+import VolumeHistorical from './volume-historical';
 
-const API_KEY = 'g0iI9DsJmEuLnZDIHJFXsm1DaJpqvA4TDQZlOslyYjA'
-const API_SECRET = 'ONXjRxvFdy7XgPIO6HBn2gQx2sjLb3YGdLRc60etZPc'
-
-const url = 'https://api.bitfinex.com/v2';
-
-var bfxTimeFrames = {
-    '60000': '1m',
-    '300000': '5m',
-    '900000': '15m',
-    '1800000': '30m',
-    '3600000': '1h',
-    '10800000': '3h',
-    '21600000': '6h',
-    '43200000': '12h',
-    '86400000': '1D',
-    '604800000': '7D',
-    '1209600000': '14D'
-    // 1M is also supported, but since the length is variable there can
-    // be no direct translation.
-}
-
-export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLength: number, loggingEnabled: boolean) {
-    if(!_.has(bfxTimeFrames, cycleLength)) {
-        throw new Error('cycle length not supported by exchange');
-    }
-
+export default function BfxTimeSeries(apiKey: string, apiSecret: string, bfxFrom: string, bfxTo: string, cycleLength: number, loggingEnabled: boolean) {
     var bfxPairId = `${bfxFrom}${bfxTo}`;
     var bfxSymbol = `t${bfxPairId}`;
 
-    const bfxAPI = new BFX(API_KEY, API_SECRET, {
+    const bfxAPI = new BFX(apiKey, apiSecret, {
         version: 2,
         transform: true
     });
 
-    var twentyFourHoursAgo = new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - (24 * 7));
-    var nearestCycleStartTime = Math.floor(twentyFourHoursAgo.getTime() / cycleLength) * cycleLength;
-    twentyFourHoursAgo.setTime(nearestCycleStartTime);
-    
-    var now = new Date();
-    var nextCycleTime = Math.ceil(now.getTime() / cycleLength) * cycleLength;
-    
-    var futureCycles = Rx.Observable
-        .timer(new Date(nextCycleTime), cycleLength)
-        .map(cyclesSinceTimerStarted => new Date(nextCycleTime + (cycleLength * cyclesSinceTimerStarted)));
-    
-    var pastCycleCount = Math.floor((now.getTime() - nearestCycleStartTime) / cycleLength);
-    var pastCycles = Rx.Observable
-        .range(1, pastCycleCount)
-        .map(cycleNumber => new Date(cycleNumber * cycleLength + nearestCycleStartTime));
-    
-    var cycles = pastCycles.concat(futureCycles);
-    
-    var priceOpenSubject= new Rx.Subject();
-    var priceCloseSubject = new Rx.Subject();
-    var priceHighSubject = new Rx.Subject();
-    var priceLowSubject= new Rx.Subject();
-    var volumeSubject = new Rx.Subject();
-    var walletSubject = new Rx.Subject();
-    var activeOrdersSubject = new Rx.Subject();
-    
-    request.get( 
-        `${url}/candles/trade:${bfxTimeFrames[cycleLength]}:${bfxSymbol}/hist`,
-        (error, response, body) =>  {
-            var candles = JSON.parse(body);
-    
-            _.forEachRight(candles, (candle) => {
-                // [date, open, close, high, low, volume]
-                var date = new Date(candle[0]);
-                priceOpenSubject.next({
-                    d: date,
-                    v: candle[1]
-                });
-                priceCloseSubject.next({
-                    d: date,
-                    v: candle[2]
-                });
-                priceHighSubject.next({
-                    d: date,
-                    v: candle[3]
-                });
-                priceLowSubject.next({
-                    d: date,
-                    v: candle[4]
-                });
-                volumeSubject.next({
-                    d: date,
-                    v: candle[5]
-                });
-            });
-    
-            priceOpenSubject.complete();
-            priceHighSubject.complete();
-            priceLowSubject.complete();
-            volumeSubject.complete();
-        }
-    );
-    
-    bfxAPI.ws.on('open', () => {
-        bfxAPI.ws.subscribeTrades(bfxPairId);
-        bfxAPI.ws.subscribeOrderBook('IOTBTC')
-        bfxAPI.ws.auth();
-    });
+    let priceOpenHistorical = PriceOpenHistorical(bfxSymbol, cycleLength);
+    let priceCloseHistorical = PriceCloseHistorical(bfxSymbol, cycleLength);
+    let priceLowHistorical = PriceLowHistorical(bfxSymbol, cycleLength);
+    let priceHighHistorical = PriceHighHistorical(bfxSymbol, cycleLength);
+    let volumeHistorical = VolumeHistorical(bfxSymbol, cycleLength);
 
-    bfxAPI.ws.on('auth', () => {
-        console.log('authenticated');
-    });
-
+    let realTimeTrades = new Rx.Subject<TimeSeriesPoint<number>>();
     bfxAPI.ws.on('trade', (pair, trades) => {
         // 'te' stands for trade execution
         if(_.first(trades) !== 'te') {
@@ -126,12 +42,39 @@ export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLengt
             .forEachRight((trade: any) => {
                 var date = new Date(trade.MTS);
                 var price = trade.PRICE;
-                var streamPoint = {
-                    d: date,
-                    v: price
-                };
-                priceCloseSubject.next(streamPoint);
+                realTimeTrades.next({
+                    d: new Date(trade.MTS),
+                    v: trade.PRICE
+                });
             });
+    });
+
+    let binnedRealTimeTrades = BinByCycleLength(realTimeTrades, cycleLength).shareReplay();
+
+    let priceOpenRealTime : TimeSeries<number> = BinOpen(binnedRealTimeTrades);
+    let priceCloseRealTime : TimeSeries<number> = BinClose(binnedRealTimeTrades);
+    let priceLowRealTime : TimeSeries<number> = BinLow(binnedRealTimeTrades);
+    let priceHighRealTime : TimeSeries<number> = BinHigh(binnedRealTimeTrades);
+    // TODO: don't yet know how to calculate volume;
+    let volumeRealTime : TimeSeries<number>;
+
+    let priceOpenTimeSeries = priceOpenHistorical.concat(priceOpenRealTime);
+    let priceCloseTimeSeries = priceOpenHistorical.concat(priceCloseRealTime);
+    let priceLowTimeSeries = priceOpenHistorical.concat(priceLowRealTime);
+    let priceHighTimeSeries = priceOpenHistorical.concat(priceHighRealTime);
+    let volumeTimeSeries = priceOpenHistorical.concat(volumeRealTime);
+
+    var walletSubject = new Rx.Subject();
+    var activeOrdersSubject = new Rx.Subject();
+    
+    bfxAPI.ws.on('open', () => {
+        bfxAPI.ws.subscribeTrades(bfxPairId);
+        bfxAPI.ws.subscribeOrderBook('IOTBTC')
+        bfxAPI.ws.auth();
+    });
+
+    bfxAPI.ws.on('auth', () => {
+        console.log('authenticated');
     });
 
     var bookChannelId;
@@ -191,7 +134,6 @@ export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLengt
                 debug: true,
                 handler: messageHandler(msg => {
                     var orders = msg[2];
-                    console.log(orders);
                     _.each(orders, order => {
                         var orderObj = orderPacketToOrderObject(order); 
                         _.set(activeOrders, orderObj.id, orderObj);
@@ -419,8 +361,6 @@ export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLengt
             }
         }
 
-        // console.log('Message: ');
-        // console.log(msg);
         if(_.isPlainObject(msg)) {
             if(msg.event === 'info') {
     
@@ -458,7 +398,6 @@ export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLengt
                     });
                 } else if (_.isArray(msg[1])) {
                     var orderbookUpdate = msg[1];
-                    //console.log(orderbookUpdate);
                     var price = orderbookUpdate[0];
                     var count = orderbookUpdate[1];
                     var amount = orderbookUpdate[2];
@@ -541,6 +480,7 @@ export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLengt
         .map(walletMsg => ({
             d: new Date(),
             v: _.transform(walletMsg[2], (accumulator, balance) => {
+                // TODO: why might balance by null?
                 if(balance !== null) {
                     _.set(accumulator, balance[1], balance[2]);
                 }
@@ -572,31 +512,11 @@ export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLengt
 
     bfxAPI.ws.on('error', console.error)
 
-    var priceOpenDataSource = priceOpenSubject;
-    var priceCloseDataSource = priceCloseSubject;
-    var priceHighDataSource = priceHighSubject;
-    var priceLowDataSource = priceLowSubject
-    
-    function BfxDataToTimeSeries(dataSource) {
-        return dataSource.map(streamPoint => ({
-            d: new Date(Math.floor(streamPoint.d.getTime() / cycleLength) * cycleLength),
-            v: streamPoint.v
-        }));
-    }
-
-    var priceOpenTimeSeries = AlignToDates(BfxDataToTimeSeries(priceOpenDataSource), cycles);
-    var priceCloseTimeSeries = AlignToDates(BfxDataToTimeSeries(priceCloseDataSource), cycles);
     // Note: there is a bug here with concat and how it interacts with bitfinex api. The real time
     //       subscription will happen after the bin has been started most of the time, and since the
     //       historical fetch didn't fetch the current low or high, then the low or high as calculated
     //       here on the fly could be incorrect. To fix this, there needs to be a way to get the low and
     //       high of the current bin, or you can wait until the next bin to begin trading on more accurate data.
-    var priceHighTimeSeries = AlignToDates(
-        BfxDataToTimeSeries(priceHighDataSource).concat(BinHigh(priceCloseTimeSeries)), 
-        cycles);
-    var priceLowTimeSeries = AlignToDates(
-        BfxDataToTimeSeries(priceLowDataSource).concat(BinLow(priceCloseTimeSeries)), 
-        cycles);
     var bidsTimeSeries = AlignToDates(BfxDataToTimeSeries(bidsDataSource), cycles).distinctUntilChanged(_.isEqual);
     var asksTimeSeries = AlignToDates(BfxDataToTimeSeries(asksDataSource), cycles).distinctUntilChanged(_.isEqual);
 
@@ -618,21 +538,15 @@ export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLengt
 
     function placeLimitOrder(symbol, amount, price) {
         var cid = new Date().getTime();
-        const order = [
-            0,
-            'on',
-            null,
-            {
-                cid: cid,
-                // EXCHANGE LIMIT is only different from LIMIT in which funds it is using
-                type: 'EXCHANGE LIMIT',
-                symbol: symbol,
-                amount: amount.toString(),
-                price: price.toString(),
-                hidden: 0
-            }
-        ];
-        
+        const order = [ 0, 'on', null, {
+            cid: cid,
+            // EXCHANGE LIMIT is only different from LIMIT in which funds it is using
+            type: 'EXCHANGE LIMIT',
+            symbol: symbol,
+            amount: amount.toString(),
+            price: price.toString(),
+            hidden: 0
+        } ];
         bfxAPI.ws.submitOrder(order);
     }
 
@@ -646,15 +560,7 @@ export default function BfxTimeSeries(bfxFrom: string, bfxTo: string, cycleLengt
         //       but I have found that to not be the case. It will always display the
         //       "order not found" message in bitfinex. I don't know if this happens
         //       due to misuse of the API or a bug on their end. Leaning towards latter.
-        const orderCancel = [
-            0,
-            "oc",
-            null,
-            {
-                "id": id
-            }
-        ];
-    
+        const orderCancel = [ 0, "oc", null, { "id": id } ];
         bfxAPI.ws.send(orderCancel);
     }
 

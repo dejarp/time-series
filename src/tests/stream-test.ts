@@ -7,11 +7,14 @@ import StochasticK from '../indicators/stochastic-k';
 import Collate from '../core/operators/collate';
 import Periods from '../periods';
 
+const API_KEY = 'g0iI9DsJmEuLnZDIHJFXsm1DaJpqvA4TDQZlOslyYjA'
+const API_SECRET = 'ONXjRxvFdy7XgPIO6HBn2gQx2sjLb3YGdLRc60etZPc'
+
 var bfxFrom = 'IOT';
 var bfxTo = 'BTC';
 var bfxSymbol = `t${bfxFrom}${bfxTo}`;
 
-var series = BfxTimeSeries(bfxFrom, bfxTo, Periods.fiveMinutes, false);
+var series = BfxTimeSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, Periods.fiveMinutes, false);
 
 var periods = 14;
 var smoothingPeriods = 3;
@@ -22,9 +25,11 @@ var stochasticDStream = StochasticD(
     series.lows, 
     periods,
     smoothingPeriods)
-    .do(point => console.log(point.v));
+    .do(console.log);
 
-
+stochasticDStream.subscribe(() => {
+    
+});
 
 function OscillatorStrategy(oscillatorStream, buyLevel, sellLevel) {
     return oscillatorStream
@@ -52,32 +57,6 @@ var decisionStream = Collate({
     balances: series.balances,
     activeOrders: series.activeOrders,
     action: strategyStream});
-
-var balanceStream = Collate({
-    price: series.closes,
-    action: strategyStream})
-    .scan((accumulator, collection) => {
-        accumulator.date = collection.v.price.d;
-        if(accumulator.action !== collection.v.action.v) {
-            accumulator.action = collection.v.action.v;
-            if(collection.v.action.v === 'BUY') {
-                accumulator.balances.IOT += accumulator.balances.BTC / collection.v.price.v;
-                accumulator.balances.BTC = 0;
-            } else if(collection.v.action.v === 'SELL') {
-                accumulator.balances.BTC += accumulator.balances.IOT * collection.v.price.v;
-                accumulator.balances.IOT = 0;
-            }
-        }
-        return accumulator;
-    }, {
-        date: null,
-        action: null,
-        balances: {
-            IOT: 0,
-            BTC: 1,
-        }
-    }
-);
 
 var orderStream = decisionStream
     .distinctUntilChanged((decision1, decision2) => {
@@ -137,27 +116,28 @@ var buySellCancelStream = buyOrders
     .merge(cancelOrdersStream)
     .do(console.log);
 
-buySellCancelStream.subscribe(decision => {
-    if(decision.action === 'CANCEL ALL ORDERS') {
-        series.orderCancelAllSubject.next(decision.orderIds);
-        // TODO: merge the order id's into the decision so that they can be canceled
-    } else if(decision.action === 'BUY') {
-        series.orderSubject.next({
-            bfxSymbol: bfxSymbol,
-            // the .1 and price modifications are there so that the trade isn't actually
-            // executed and so that if it is that it isn't too bad
-            amount: decision.amount,
-            price: decision.price
-        });
-    } else if(decision.action === 'SELL') {
-        // series.orderSubject.next({
-        //     bfxSymbol: bfxSymbol,
-        //     amount: decision.amount * .1,
-        //     price: decision.price
-        // });
-    }
-});
+// buySellCancelStream.subscribe(decision => {
+//     if(decision.action === 'CANCEL ALL ORDERS') {
+//         series.orderCancelAllSubject.next(decision.orderIds);
+//         // TODO: merge the order id's into the decision so that they can be canceled
+//     } else if(decision.action === 'BUY') {
+//         series.orderSubject.next({
+//             bfxSymbol: bfxSymbol,
+//             // the .1 and price modifications are there so that the trade isn't actually
+//             // executed and so that if it is that it isn't too bad
+//             amount: decision.amount,
+//             price: decision.price
+//         });
+//     } else if(decision.action === 'SELL') {
+//         // series.orderSubject.next({
+//         //     bfxSymbol: bfxSymbol,
+//         //     amount: decision.amount * .1,
+//         //     price: decision.price
+//         // });
+//     }
+// });
 
+// TODO: clean up bitfinex series stuff
 // TODO: start thinking about how decisions and actions will stack in the final product
 // TODO: start thinking about what the streams need to look like to make this support multiple exchanges
 // TODO: factor in fees
