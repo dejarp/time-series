@@ -20,13 +20,14 @@ var bfxTimeFrames = {
     '1209600000': '14D'
     // 1M is also supported, but since the length is variable there can
     // be no direct translation.
-}
+};
 
-type BfxCandle = {open: number, close: number, low: number, high: number, volume: number};
+export type BfxCandle = {open: number, close: number, low: number, high: number, volume: number};
 let resolveCacheKey = (bfxSymbol: string, cycleLength: number) => `${bfxSymbol}:${cycleLength}`
-let HistoricalData = _.memoize((bfxSymbol: string, cycleLength: number) : TimeSeries<BfxCandle> => Rx.Observable
-    .defer(() => Rx.Observable.fromPromise(httpRequest(`${url}/candles/trade:${bfxTimeFrames[cycleLength]}:${bfxSymbol}/hist`)))
-    .flatMap((response: any) => JSON.parse(response.body))
+let HistoricalData = _.memoize((bfxFrom: string, bfxTo: string, cycleLength: number) : TimeSeries<BfxCandle> => Rx.Observable
+    .defer(() => Rx.Observable.fromPromise(httpRequest(`${url}/candles/trade:${bfxTimeFrames[cycleLength]}:t${bfxFrom}${bfxTo}/hist`)))
+    .map((body: string) => JSON.parse(body))
+    .flatMap(candles => _.reverse(candles))
     .map(candle => ({
         d: new Date(candle[0]),
         v: {
@@ -38,5 +39,4 @@ let HistoricalData = _.memoize((bfxSymbol: string, cycleLength: number) : TimeSe
         }
     }))
     .shareReplay(), resolveCacheKey);
-
-export { HistoricalData, BfxCandle };
+export default HistoricalData;
