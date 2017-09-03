@@ -30,7 +30,7 @@ export default function(apiKey: string, apiSecret: string, bfxFrom: string, bfxT
         bfxAPI.ws.on('message', message => websocketMessages.next(message));
 
         bfxAPI.ws.on('error', error => {
-            console.error(error);
+            //console.error(error);
         });
 
         // TODO: normalize these kinds of events

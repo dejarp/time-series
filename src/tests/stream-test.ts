@@ -3,6 +3,11 @@ import * as Rx from 'rxjs';
 import PriceCloseSeries from '../exchanges/bitfinex/price-close-series';
 import PriceLowSeries from '../exchanges/bitfinex/price-low-series';
 import PriceHighSeries from '../exchanges/bitfinex/price-high-series';
+import DateDomain from '../exchanges/bitfinex/date-domain';
+
+import HorizontalLine from '../indicators/horizontal-line';
+import LowHighCrosses from '../strategies/low-high-crosses';
+import HighLowCrosses from '../strategies/high-low-crosses';
 
 import StochasticD from '../indicators/stochastic-d';
 import StochasticK from '../indicators/stochastic-k';
@@ -31,25 +36,19 @@ let highSeries = PriceHighSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLengt
 
 let stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, periods, smoothingPeriods)
 
-stochasticDStream.subscribe(console.log);
+let domain = DateDomain(cycleLength);
 
-// function OscillatorStrategy(oscillatorStream, buyLevel, sellLevel) {
-//     return oscillatorStream
-//         .map(point => {
-//             var action;
-//             if(point.v <= buyLevel) {
-//                 action = 'BUY';
-//             } else if(point.v >= sellLevel) {
-//                 action = 'SELL';
-//             } else {
-//                 action = 'HOLD';
-//             }
-//             return {
-//                 d: point.d,
-//                 v: action
-//             };
-//         });
-// }
+let lowHighCrosses = LowHighCrosses(
+    stochasticDStream,
+    HorizontalLine(domain, 84)
+);
+
+let highLowCrosses = HighLowCrosses(
+    stochasticDStream,
+    HorizontalLine(domain, 16)
+);
+
+highLowCrosses.subscribe(console.log);
 
 // var strategyStream = OscillatorStrategy(stochasticDStream, 15, 85);
 
@@ -138,7 +137,6 @@ stochasticDStream.subscribe(console.log);
 //     }
 // });
 
-// TODO: clean up bitfinex series stuff
 // TODO: start thinking about how decisions and actions will stack in the final product
 // TODO: start thinking about what the streams need to look like to make this support multiple exchanges
 // TODO: factor in fees
