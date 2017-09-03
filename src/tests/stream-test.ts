@@ -8,6 +8,7 @@ import DateDomain from '../exchanges/bitfinex/date-domain';
 import HorizontalLine from '../indicators/horizontal-line';
 import LowHighCrosses from '../strategies/low-high-crosses';
 import HighLowCrosses from '../strategies/high-low-crosses';
+import OscillationCrosses from '../strategies/oscillation-crosses';
 
 import StochasticD from '../indicators/stochastic-d';
 import StochasticK from '../indicators/stochastic-k';
@@ -35,20 +36,20 @@ let lowSeries = PriceLowSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength)
 let highSeries = PriceHighSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
 
 let stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, periods, smoothingPeriods)
-
 let domain = DateDomain(cycleLength);
 
-let lowHighCrosses = LowHighCrosses(
-    stochasticDStream,
-    HorizontalLine(domain, 84)
+let oscillationCrosses = OscillationCrosses(
+    HighLowCrosses(
+        stochasticDStream,
+        HorizontalLine(domain, 16)
+    ),
+    LowHighCrosses(
+        stochasticDStream,
+        HorizontalLine(domain, 84)
+    ),
 );
 
-let highLowCrosses = HighLowCrosses(
-    stochasticDStream,
-    HorizontalLine(domain, 16)
-);
-
-highLowCrosses.subscribe(console.log);
+oscillationCrosses.subscribe(console.log);
 
 // var strategyStream = OscillatorStrategy(stochasticDStream, 15, 85);
 
