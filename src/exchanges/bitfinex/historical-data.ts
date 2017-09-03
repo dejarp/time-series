@@ -33,8 +33,8 @@ let HistoricalData = _.memoize((bfxFrom: string, bfxTo: string, cycleLength: num
         v: {
             open: candle[1],
             close: candle[2],
-            low: candle[3],
-            high: candle[4],
+            high: candle[3],
+            low: candle[4],
             volume: candle[5]
         }
     }))

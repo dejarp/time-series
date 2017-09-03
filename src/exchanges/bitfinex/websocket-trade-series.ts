@@ -42,7 +42,7 @@ export default function(apiKey: string, apiSecret: string, bfxFrom: string, bfxT
         .map(teMessage => convertTradeToObject(teMessage.v.payload));
 
     return Rx.Observable
-        .merge(/* tradesInSnapshot,*/ tradesExecutedAfterSnapshot, tradeUpdates)
+        .merge(tradesInSnapshot, tradesExecutedAfterSnapshot, tradeUpdates)
         .map(trade => ({
             d: trade.date,
             v: trade.price

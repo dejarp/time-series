@@ -9,7 +9,8 @@ import StochasticK from '../indicators/stochastic-k';
 import Collate from '../core/operators/collate';
 import Periods from '../periods';
 
-import PriceCloseRealTime from '../exchanges/bitfinex/price-close-real-time';
+import MovingLow from '../core/operators/moving-low';
+import MovingHigh from '../core/operators/moving-high';
 
 const API_KEY = 'g0iI9DsJmEuLnZDIHJFXsm1DaJpqvA4TDQZlOslyYjA'
 const API_SECRET = 'ONXjRxvFdy7XgPIO6HBn2gQx2sjLb3YGdLRc60etZPc'
@@ -25,14 +26,12 @@ let cycleLength = Periods.fiveMinutes;
 
 // At the moment, if real time is concated after historical, real time never ticks
 let closeSeries = PriceCloseSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
-//let lowSeries = PriceLowSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
-//let highSeries = PriceHighSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
+let lowSeries = PriceLowSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
+let highSeries = PriceHighSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
 
-let historicalDataAligned = PriceCloseRealTime(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
+let stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, periods, smoothingPeriods)
 
-//let stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, periods, smoothingPeriods)
-
-closeSeries.subscribe(console.log);
+stochasticDStream.subscribe(console.log);
 
 // function OscillatorStrategy(oscillatorStream, buyLevel, sellLevel) {
 //     return oscillatorStream
@@ -117,7 +116,6 @@ closeSeries.subscribe(console.log);
 //     .merge(sellOrders)
 //     .distinctUntilChanged((decision1, decision2) => decision1.action === decision2.action)
 //     .merge(cancelOrdersStream)
-//     .do(console.log);
 
 // buySellCancelStream.subscribe(decision => {
 //     if(decision.action === 'CANCEL ALL ORDERS') {
