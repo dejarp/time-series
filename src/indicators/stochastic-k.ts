@@ -9,14 +9,9 @@ export default function StochasticK(closeSeries, highSeries, lowSeries, periods)
         closeSeries.skip(periods - 1),
         MovingLow(lowSeries, periods),
         MovingHigh(highSeries, periods)],
-        (close, lowestLow, highestHigh) => {
-            if(close.d.getTime() !== lowestLow.d.getTime()) {
-                throw new Error('misaligned');
-            }
-            return {
-                d: close.d,
-                v: 100 * (close.v - lowestLow.v) / (highestHigh.v - lowestLow.v)
-            };
-        }
+        (close, lowestLow, highestHigh) => ({
+            d: close.d,
+            v: 100 * (close.v - lowestLow.v) / (highestHigh.v - lowestLow.v)
+        })
     )
 }
