@@ -1,10 +1,10 @@
 import * as Rx from 'rxjs';
 import TimeSeries from '../core/time-series';
 
-export default function<T>(timeSeries: Rx.Observable<Date>, value: number) : TimeSeries<number> {
+export default function HorizontalLine(timeSeries: TimeSeries<number>, value: number) : TimeSeries<number> {
     return timeSeries
-        .map(date => ({
-            d: date,
+        .map(point => ({
+            d: point.d,
             v: value
         }));
 };

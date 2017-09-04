@@ -3,7 +3,6 @@ import * as Rx from 'rxjs';
 import PriceCloseSeries from '../exchanges/bitfinex/price-close-series';
 import PriceLowSeries from '../exchanges/bitfinex/price-low-series';
 import PriceHighSeries from '../exchanges/bitfinex/price-high-series';
-import DateDomain from '../exchanges/bitfinex/date-domain';
 
 import HorizontalLine from '../indicators/horizontal-line';
 import LowHighCrosses from '../strategies/low-high-crosses';
@@ -28,7 +27,7 @@ let bfxSymbol = `t${bfxFrom}${bfxTo}`;
 let periods = 14;
 let smoothingPeriods = 3;
 
-let cycleLength = Periods.fiveMinutes;
+let cycleLength = Periods.oneMinute;
 
 // At the moment, if real time is concated after historical, real time never ticks
 let closeSeries = PriceCloseSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
@@ -36,16 +35,15 @@ let lowSeries = PriceLowSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength)
 let highSeries = PriceHighSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
 
 let stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, periods, smoothingPeriods)
-let domain = DateDomain(cycleLength);
 
 let oscillationCrosses = OscillationCrosses(
     HighLowCrosses(
         stochasticDStream,
-        HorizontalLine(domain, 16)
+        HorizontalLine(stochasticDStream, 16)
     ),
     LowHighCrosses(
         stochasticDStream,
-        HorizontalLine(domain, 84)
+        HorizontalLine(stochasticDStream, 84)
     ),
 );
 
