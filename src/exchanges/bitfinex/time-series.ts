@@ -131,42 +131,4 @@ export default function BfxTimeSeries(apiKey: string, apiSecret: string, bfxFrom
     //     placeLimitOrder(order.bfxSymbol, order.amount, order.price);
     // });
 
-    // function cancelOrder(id) {
-    //     // Note: the docs say that orders can be canceled using the cid and cid_date
-    //     //       but I have found that to not be the case. It will always display the
-    //     //       "order not found" message in bitfinex. I don't know if this happens
-    //     //       due to misuse of the API or a bug on their end. Leaning towards latter.
-    //     const orderCancel = [ 0, "oc", null, { "id": id } ];
-    //     bfxAPI.ws.send(orderCancel);
-    // }
-
-    // var orderCancelAllSubject = new Rx.Subject();
-    // function cancelMultipleOrders(arrayOfOrderIds) {
-    //     _.each(arrayOfOrderIds, orderId => {
-    //         cancelOrder(orderId);
-    //     });
-    // }
-
-    // orderCancelAllSubject.subscribe(orderIds => {
-    //     cancelMultipleOrders(orderIds);
-    // });
-
-    // var orderCancelSubject: Rx.Subject<any> = new Rx.Subject();
-    // orderCancelSubject.subscribe(orderCancellation => {
-    //     cancelOrder(orderCancellation.cid);
-    // });
-
-    return {
-        // opens: PriceOpenSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength),
-        // closes: PriceCloseSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength),
-        // lows: PriceLowSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength),
-        // highs: PriceHighSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength),
-        //bids: bidsTimeSeries,
-        //asks: asksTimeSeries,
-        //balances: balancesTimeSeries,
-        //activeOrders: activeOrdersTimeSeries,
-        //orderSubject: orderSubject,
-        //orderCancelSubject: orderCancelSubject,
-        //orderCancelAllSubject: orderCancelAllSubject
-    };
 }

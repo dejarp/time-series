@@ -3,7 +3,7 @@ import * as Rx from 'rxjs';
 import TimeSeries from '../time-series';
 import TimeSeriesPoint from '../time-series-point';
 
-export default function(timeSeries: TimeSeries<any>[], resultSelector: (...results: TimeSeriesPoint<any>[]) => TimeSeriesPoint<any>) : TimeSeries<any> {
+export default function(timeSeries: TimeSeries<any>[], resultSelector?: (...results: TimeSeriesPoint<any>[]) => TimeSeriesPoint<any>) : TimeSeries<any> {
     let taggedTimeSeries: TimeSeries<{index: number, value: any}>[] = _.map(timeSeries, (series, index) => series.map(point => ({
         d: point.d,
         v: {
@@ -32,6 +32,6 @@ export default function(timeSeries: TimeSeries<any>[], resultSelector: (...resul
         .distinctUntilChanged(_.isEqual)
         .filter((point: TimeSeriesPoint<any>) => _.every(point.v, value => value !== null))
         .map(fullBin => {
-            return resultSelector.apply(null, fullBin.v);
+            return _.isFunction(resultSelector) ? resultSelector.apply(null, fullBin.v) : fullBin;
         });
 }

@@ -3,11 +3,11 @@ import * as Rx from 'rxjs';
 import PriceCloseSeries from '../exchanges/bitfinex/price-close-series';
 import PriceLowSeries from '../exchanges/bitfinex/price-low-series';
 import PriceHighSeries from '../exchanges/bitfinex/price-high-series';
+import CancelAllOrders from '../exchanges/bitfinex/cancel-all-orders';
 
 import HorizontalLine from '../indicators/horizontal-line';
 import LowHighCrosses from '../strategies/low-high-crosses';
 import HighLowCrosses from '../strategies/high-low-crosses';
-import OscillationCrosses from '../strategies/oscillation-crosses';
 
 import StochasticD from '../indicators/stochastic-d';
 import StochasticK from '../indicators/stochastic-k';
@@ -46,19 +46,26 @@ let holdPoints = Rx.Observable.merge(
 );
 
 // execute the strategy (create orders, and cancel orders as needed based on strategy)
+
 let buyOrders = CollateBy(
     [closeSeries, buyPoints], 
-    (price, buyPoint) => {
-        return {
-            d: price.d,
-            v: {
-                price: price,
-                buyPoint: buyPoint
-            }
-        };
-    });
+    (price, buyPoint) => price);
 
-buyOrders.subscribe(console.log);
+let sellOrders = CollateBy(
+    [closeSeries, sellPoints],
+    (price, sellPoint) => ({
+        d: price.d,
+        v: {
+            price: price,
+            sellPoint: sellPoint
+        }
+    }));
+
+let cancelOrders = CancelAllOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, holdPoints.do(bla => {
+    console.log(bla);
+}))
+
+cancelOrders.subscribe(console.log);
 
 // var decisionStream = Collate({
 //     last: series.closes,
@@ -145,6 +152,5 @@ buyOrders.subscribe(console.log);
 //     }
 // });
 
-// TODO: start thinking about how decisions and actions will stack in the final product
 // TODO: start thinking about what the streams need to look like to make this support multiple exchanges
 // TODO: factor in fees

@@ -1,13 +1,7 @@
 import * as _ from 'lodash';
+import * as Rx from 'rxjs';
 import WebsocketSeries from './websocket-series';
 import TimeSeries from '../../core/time-series';
-
-let orderMessageTypes = {
-    'os': true,
-    'on': true,
-    'ou': true,
-    'oc': true
-};
 
 type BfxOrderType = 'LIMIT'|'MARKET'|'STOP'|'TRAILING STOP'|'EXCHANGE MARKET'|'EXCHANGE LIMIT'|'EXCHANGE STOP'|'EXCHANGE TRAILING STOP'|'FOK'|'EXCHANGE FOK';
 type BfxOrderStatus = 'ACTIVE'|'EXECUTED'|'PARTIALLY FILLED'|'CANCELED';
@@ -34,10 +28,24 @@ export type BfxOrder = {
     placedId: number
 };
 
+export enum BfxOrderPacketTypes {
+    os,
+    on,
+    ou,
+    oc
+};
+
 export type BfxOrderPacket = {
-    type: 'os'|'on'|'ou'|'oc',
+    type: BfxOrderPacketTypes,
     orders: BfxOrder[]
-}
+};
+
+let orderMessageStringsToTypesEnum = {
+    'os': BfxOrderPacketTypes.os,
+    'on': BfxOrderPacketTypes.on,
+    'ou': BfxOrderPacketTypes.ou,
+    'oc': BfxOrderPacketTypes.oc
+};
 
 function orderPacketToOrderObject(order) : BfxOrder {
     return {
@@ -71,13 +79,32 @@ function orderPacketToOrderObject(order) : BfxOrder {
 }
 
 export default function(apiKey: string, apiSecret: string, bfxFrom: string, bfxTo: string, cycleLength: number) : TimeSeries<BfxOrderPacket> {
-    return WebsocketSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength)
-        .filter(packet => _.has(orderMessageTypes, packet.v.type))
-        .map(packet => ({
-            d: new Date(),
-            v: {
-                type: packet[1],
-                orders: _.map(packet[2], orderPacketToOrderObject)
+    let orderMessages = WebsocketSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength)
+        .filter(packet => _.has(orderMessageStringsToTypesEnum, packet.v.type))
+    
+    let orderSnapshotMessages = orderMessages
+        .filter(packet => packet.v.type === 'os')
+        .map(packet => {
+            return {
+                d: new Date(),
+                v: {
+                    type: orderMessageStringsToTypesEnum[packet.v.type],
+                    orders: _.map(packet.v.payload, orderPacketToOrderObject)
+                }
             }
-        }));
+        });
+
+    let orderNewUpdateCancelMessages = orderMessages
+        .filter(packet => packet.v.type !== 'os')
+        .map(packet => {
+            return {
+                d: new Date(),
+                v: {
+                    type: orderMessageStringsToTypesEnum[packet.v.type],
+                    orders: [ orderPacketToOrderObject(packet.v.payload)]
+                }
+            };
+        });
+
+    return Rx.Observable.merge(orderSnapshotMessages, orderNewUpdateCancelMessages);
 }

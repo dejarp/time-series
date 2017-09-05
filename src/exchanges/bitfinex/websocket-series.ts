@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 import * as Rx from 'rxjs';
-import * as BitfinexAPI from 'bitfinex-api-node';
+import ApiInstance from './api-instance';
 import TimeSeries from '../../core/time-series';
 import TimeSeriesPoint from '../../core/time-series-point';
 import BinByCycleLength from '../../core/operators/bin-by-cycle-length';
@@ -16,21 +16,22 @@ export default function(apiKey: string, apiSecret: string, bfxFrom: string, bfxT
         let bfxPairId = `${bfxFrom}${bfxTo}`;
         let websocketMessages = new Rx.Subject<any>();
 
-        const bfxAPI = new BitfinexAPI(apiKey, apiSecret, {
-            version: 2,
-            transform: true
-        });
+        const bfxAPI = ApiInstance(apiKey, apiSecret);
 
         bfxAPI.ws.on('open', () => {
             bfxAPI.ws.subscribeTrades(bfxPairId);
             bfxAPI.ws.subscribeOrderBook(bfxPairId)
             bfxAPI.ws.auth();
         });
+
+        bfxAPI.ws.on('auth', () => {
+
+        });
     
         bfxAPI.ws.on('message', message => websocketMessages.next(message));
 
         bfxAPI.ws.on('error', error => {
-            //console.error(error);
+            console.error(error);
         });
 
         // TODO: normalize these kinds of events
@@ -159,6 +160,6 @@ export default function(apiKey: string, apiSecret: string, bfxFrom: string, bfxT
             //         messageMetadata.handler(msg);
             //     }
             // }
-    });
+    }).shareReplay()
 
 };
