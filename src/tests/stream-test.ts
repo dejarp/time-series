@@ -11,7 +11,7 @@ import OscillationCrosses from '../strategies/oscillation-crosses';
 
 import StochasticD from '../indicators/stochastic-d';
 import StochasticK from '../indicators/stochastic-k';
-import Collate from '../core/operators/collate';
+import CollateBy from '../core/operators/collate-by';
 import Periods from '../periods';
 
 import MovingLow from '../core/operators/moving-low';
@@ -24,32 +24,41 @@ let bfxFrom = 'IOT';
 let bfxTo = 'BTC';
 let bfxSymbol = `t${bfxFrom}${bfxTo}`;
 
-let periods = 14;
-let smoothingPeriods = 3;
+let cycleLength = Periods.fiveMinutes;
 
-let cycleLength = Periods.oneMinute;
-
-// At the moment, if real time is concated after historical, real time never ticks
+// Set up data sources
 let closeSeries = PriceCloseSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
 let lowSeries = PriceLowSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
 let highSeries = PriceHighSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
 
-let stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, periods, smoothingPeriods)
+// Apply inidicator(s) to input data
+let stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, 14, 3)
 
-let oscillationCrosses = OscillationCrosses(
-    HighLowCrosses(
-        stochasticDStream,
-        HorizontalLine(stochasticDStream, 16)
-    ),
-    LowHighCrosses(
-        stochasticDStream,
-        HorizontalLine(stochasticDStream, 84)
-    ),
+// forumulate strategy (comprised of buy points, sell points, and hold points)
+let buyLine = HorizontalLine(stochasticDStream, 16);
+let sellLine = HorizontalLine(stochasticDStream, 84);
+
+let buyPoints = HighLowCrosses(stochasticDStream, buyLine);
+let sellPoints = LowHighCrosses(stochasticDStream, sellLine);
+let holdPoints = Rx.Observable.merge(
+    HighLowCrosses(stochasticDStream, buyLine),
+    LowHighCrosses(stochasticDStream, sellLine)
 );
 
-oscillationCrosses.subscribe(console.log);
+// execute the strategy (create orders, and cancel orders as needed based on strategy)
+let buyOrders = CollateBy(
+    [closeSeries, buyPoints], 
+    (price, buyPoint) => {
+        return {
+            d: price.d,
+            v: {
+                price: price,
+                buyPoint: buyPoint
+            }
+        };
+    });
 
-// var strategyStream = OscillatorStrategy(stochasticDStream, 15, 85);
+buyOrders.subscribe(console.log);
 
 // var decisionStream = Collate({
 //     last: series.closes,
