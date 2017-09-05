@@ -166,5 +166,5 @@ export default _.memoize(function(apiKey: string, apiSecret: string, bfxFrom: st
             //         messageMetadata.handler(msg);
             //     }
             // }
-    }).share()
+    }).shareReplay()
 }, getCacheKey);

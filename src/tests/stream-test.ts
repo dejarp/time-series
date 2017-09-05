@@ -34,7 +34,9 @@ let lowSeries = PriceLowSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength)
 let highSeries = PriceHighSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
 
 // Apply inidicator(s) to input data
-let stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, 14, 3)
+let stochasticDStream = StochasticD(closeSeries.do(bla => {
+    console.log(bla);
+}), highSeries, lowSeries, 14, 3)
 
 // forumulate strategy (comprised of buy points, sell points, and hold points)
 let buyLine = HorizontalLine(stochasticDStream, 16);
@@ -50,12 +52,16 @@ let holdPoints = Rx.Observable.merge(
 // execute the strategy (create orders, and cancel orders as needed based on strategy)
 let allocation = .1;
 let cancelOrders = CancelAllOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, holdPoints);
-let buyOrders = CreateBuyOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, buyPoints, allocation);
-let sellOrders = CreateSellOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, closeSeries, allocation);
+let buyOrders = CreateBuyOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, closeSeries.do(bla => {
+    console.log(bla);
+}), allocation);
+let sellOrders = CreateSellOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, closeSeries.do(bla => {
+    console.log(bla);
+}), allocation);
 
-let marketActions = Rx.Observable.merge(buyOrders, sellOrders, cancelOrders);
+let marketActions = Rx.Observable.merge(buyOrders, /* sellOrders,cancelOrders*/);
 
-buyOrders.subscribe(point => console.log(JSON.stringify(point, null, '  ')));
+marketActions.subscribe(point => console.log(JSON.stringify(point, null, '  ')));
 
 // TODO: start trading
 // TODO: start thinking about what the streams need to look like to make this support multiple exchanges

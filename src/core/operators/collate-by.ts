@@ -29,7 +29,6 @@ export default function(timeSeries: TimeSeries<any>[], resultSelector?: (...resu
             return buffer;
         }, [])
         .map(buffer => buffer[0])
-        .distinctUntilChanged(_.isEqual)
         .filter((point: TimeSeriesPoint<any>) => _.every(point.v, value => value !== null))
         .map(fullBin => {
             return _.isFunction(resultSelector) ? resultSelector.apply(null, fullBin.v) : fullBin;

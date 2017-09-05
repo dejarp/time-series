@@ -18,9 +18,9 @@ export default function CreateSellOrders(apiKey: string, apiSecret: string, bfxF
             var price = results.v[1].v;
             var fromBalance = results.v[0].v['exchange'][bfxFrom].balance; // ex. MIOTA
             var toBalance = results.v[0].v['exchange'][bfxTo].balance; // ex. BTC
-            var totalFromBalance = fromBalance + (toBalance * price);
-            var totalToBalance = toBalance + (fromBalance / price);
-            var totalTradableFromBalance = (allocation * totalToBalance) - totalFromBalance;
+            var totalFromBalance = fromBalance + (toBalance / price);
+            var totalToBalance = toBalance + (fromBalance * price);
+            var totalTradableFromBalance = (allocation * totalFromBalance) - (toBalance / price);
 
             var desiredPrice = results.v[1].v * 1.25;
             var desiredAmount = .999 * totalTradableFromBalance * -1;
