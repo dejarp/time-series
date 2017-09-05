@@ -54,18 +54,6 @@ export default function BfxTimeSeries(apiKey: string, apiSecret: string, bfxFrom
     //         }
     //     });
 
-    // var balancesDataSource = walletSubject
-    //     .map(walletMsg => ({
-    //         d: new Date(),
-    //         v: _.transform(walletMsg[2], (accumulator, balance) => {
-    //             // TODO: why might balance by null?
-    //             if(balance !== null) {
-    //                 _.set(accumulator, balance[1], balance[2]);
-    //             }
-    //         }, {})
-    //     }))
-    //     .distinctUntilChanged(_.isEqual);
-
     // var bidAskDataSource = groupedOrderbookDataSource
     //     .map(orderbook => ({
     //         d: orderbook.d,
@@ -95,22 +83,6 @@ export default function BfxTimeSeries(apiKey: string, apiSecret: string, bfxFrom
     //       high of the current bin, or you can wait until the next bin to begin trading on more accurate data.
     //var bidsTimeSeries = AlignToDates(bidsDataSource, dates).distinctUntilChanged(_.isEqual);
     // var asksTimeSeries = AlignToDates(asksDataSource, dates).distinctUntilChanged(_.isEqual);
-
-    // var balancesTimeSeries = AlignToDates(
-    //     CarryForward(
-    //         balancesDataSource, 
-    //         dates
-    //     ),
-    //     dates
-    // );
-
-    // var activeOrdersTimeSeries = AlignToDates(
-    //     CarryForward(
-    //         activeOrdersSubject,
-    //         dates
-    //     ),
-    //     dates
-    // );
 
     // function placeLimitOrder(symbol, amount, price) {
     //     var cid = new Date().getTime();

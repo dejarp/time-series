@@ -16,9 +16,7 @@ export default function CancelAllOrders(apiKey: string, apiSecret: string, bfxFr
     let bfxApi = ApiInstance(apiKey, apiSecret);
     let activeOrders = ActiveOrders(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength);
 
-    return CollateBy([activeOrders.do(bla => {
-        console.log(bla);
-    }), timeSeries])
+    return CollateBy([activeOrders, timeSeries])
         .do((orders : TimeSeriesPoint<[BfxActiveOrders, number]>) => {
             _.forEach(orders.v[0].v, (order: BfxOrder, orderId) => {
                 bfxApi.ws.send([
@@ -30,5 +28,5 @@ export default function CancelAllOrders(apiKey: string, apiSecret: string, bfxFr
                     }
                 ]);
             });
-        })
+        });
 }

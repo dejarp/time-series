@@ -4,6 +4,8 @@ import PriceCloseSeries from '../exchanges/bitfinex/price-close-series';
 import PriceLowSeries from '../exchanges/bitfinex/price-low-series';
 import PriceHighSeries from '../exchanges/bitfinex/price-high-series';
 import CancelAllOrders from '../exchanges/bitfinex/cancel-all-orders';
+import CreateBuyOrders from '../exchanges/bitfinex/create-buy-orders';
+import CreateSellOrders from '../exchanges/bitfinex/create-sell-orders';
 
 import HorizontalLine from '../indicators/horizontal-line';
 import LowHighCrosses from '../strategies/low-high-crosses';
@@ -46,109 +48,15 @@ let holdPoints = Rx.Observable.merge(
 );
 
 // execute the strategy (create orders, and cancel orders as needed based on strategy)
+let allocation = .1;
+let cancelOrders = CancelAllOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, holdPoints);
+let buyOrders = CreateBuyOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, buyPoints, allocation);
+let sellOrders = CreateSellOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, closeSeries, allocation);
 
-let buyOrders = CollateBy(
-    [closeSeries, buyPoints], 
-    (price, buyPoint) => price);
+let marketActions = Rx.Observable.merge(buyOrders, sellOrders, cancelOrders);
 
-let sellOrders = CollateBy(
-    [closeSeries, sellPoints],
-    (price, sellPoint) => ({
-        d: price.d,
-        v: {
-            price: price,
-            sellPoint: sellPoint
-        }
-    }));
+buyOrders.subscribe(point => console.log(JSON.stringify(point, null, '  ')));
 
-let cancelOrders = CancelAllOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, closeSeries)
-
-cancelOrders.subscribe(console.log);
-
-// var decisionStream = Collate({
-//     last: series.closes,
-//     stochastic: stochasticDStream,
-//     balances: series.balances,
-//     activeOrders: series.activeOrders,
-//     action: strategyStream});
-
-// var orderStream = decisionStream
-//     .distinctUntilChanged((decision1, decision2) => {
-//         function getRelevantChanges(decision) {
-//             // if either the action or the balance changes it may indicate that a new action should
-//             // be taken as it relates to new or outstanding orders. For a new balance, it may indicate
-//             // that there are now enough funds to buy or sell
-//             return _(decision).pick(['action', 'balances']).mapValues('v').value();
-//         }
-//         return _.isEqual(getRelevantChanges(decision1), getRelevantChanges(decision2));
-//     })
-//     .map(decisionBase => {
-//         if(decisionBase.v.action.v === 'HOLD') {
-//             return {
-//                 action: 'CANCEL ALL ORDERS',
-//                 orderIds: _(decisionBase.v.activeOrders.v).values().map('id').value()
-//             };
-//         } else if(decisionBase.v.action.v === 'BUY') {
-//             if(decisionBase.v.balances.v[bfxTo] > 0) {
-//                 return {
-//                     action: 'BUY',
-//                     // Multiply by .999 to account for fees, which would make the order invalid
-//                     // TODO: factor in the fees using a different stream
-//                     amount: .999 * decisionBase.v.balances.v[bfxTo] / decisionBase.v.last.v,
-//                     price: decisionBase.v.last.v
-//                 };
-//             } else {
-//                 // do nothing, because there isn't enough balance
-//             }
-//         } else if(decisionBase.v.action.v === 'SELL') {
-//             if(decisionBase.v.balances.v[bfxFrom] > 0) {
-//                 return {
-//                     action: 'SELL',
-//                     amount: -1 * decisionBase.v.balances.v[bfxFrom],
-//                     price: decisionBase.v.last.v
-//                 };
-//             } else {
-//                 // do nothing, not enough balance
-//             }
-//         }
-//     })
-//     .filter(decision => !_.isUndefined(decision))
-//     .share();
-
-// var cancelOrdersStream = orderStream
-//     .filter(decision => decision.action === 'CANCEL ALL ORDERS');
-
-// var buyOrders = orderStream
-//     .filter(decision => decision.action === 'BUY')
-
-// var sellOrders = orderStream
-//     .filter(decision => decision.action === 'SELL');
-
-// var buySellCancelStream = buyOrders
-//     .merge(sellOrders)
-//     .distinctUntilChanged((decision1, decision2) => decision1.action === decision2.action)
-//     .merge(cancelOrdersStream)
-
-// buySellCancelStream.subscribe(decision => {
-//     if(decision.action === 'CANCEL ALL ORDERS') {
-//         series.orderCancelAllSubject.next(decision.orderIds);
-//         // TODO: merge the order id's into the decision so that they can be canceled
-//     } else if(decision.action === 'BUY') {
-//         series.orderSubject.next({
-//             bfxSymbol: bfxSymbol,
-//             // the .1 and price modifications are there so that the trade isn't actually
-//             // executed and so that if it is that it isn't too bad
-//             amount: decision.amount,
-//             price: decision.price
-//         });
-//     } else if(decision.action === 'SELL') {
-//         // series.orderSubject.next({
-//         //     bfxSymbol: bfxSymbol,
-//         //     amount: decision.amount * .1,
-//         //     price: decision.price
-//         // });
-//     }
-// });
-
+// TODO: start trading
 // TODO: start thinking about what the streams need to look like to make this support multiple exchanges
 // TODO: factor in fees

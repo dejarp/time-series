@@ -11,7 +11,11 @@ type WebsocketPacket = {
     payload: any
 }
 
-export default function(apiKey: string, apiSecret: string, bfxFrom: string, bfxTo: string, cycleLength: number) : TimeSeries<WebsocketPacket> {
+let getCacheKey = (apiKey: string, apiSecret: string, bfxFrom: string, bfxTo: string, cycleLength: number) => {
+    return `${apiKey}${apiSecret}${bfxFrom}${bfxTo}${cycleLength}`;
+}
+
+export default _.memoize(function(apiKey: string, apiSecret: string, bfxFrom: string, bfxTo: string, cycleLength: number) : TimeSeries<WebsocketPacket> {
     return Rx.Observable.defer(() => {
         let bfxPairId = `${bfxFrom}${bfxTo}`;
         let websocketMessages = new Rx.Subject<any>();
@@ -20,7 +24,7 @@ export default function(apiKey: string, apiSecret: string, bfxFrom: string, bfxT
 
         bfxAPI.ws.on('open', () => {
             bfxAPI.ws.subscribeTrades(bfxPairId);
-            bfxAPI.ws.subscribeOrderBook(bfxPairId)
+            bfxAPI.ws.subscribeOrderBook(bfxPairId);
             bfxAPI.ws.auth();
         });
 
@@ -59,16 +63,18 @@ export default function(apiKey: string, apiSecret: string, bfxFrom: string, bfxT
             // if the second field of the message is a string, then in all likelyhood it is a general
             // purpose message
             .filter(message => _.isString(message[1]))
-            .map(message => ({
-                d: new Date(),
-                v: {
-                    // The first field is always the channel id if the message is an array
-                    channelId: message[0],
-                    type: message[1],
-                    // Note: not all general messages will have a payload (ex. 'hb'). No idea what the 'hb' message is for
-                    payload: message[2]
-                }
-            }));
+            .map(message => {
+                return {
+                    d: new Date(),
+                    v: {
+                        // The first field is always the channel id if the message is an array
+                        channelId: message[0],
+                        type: message[1],
+                        // Note: not all general messages will have a payload (ex. 'hb'). No idea what the 'hb' message is for
+                        payload: message[2]
+                    }
+                };
+            });
 
         return Rx.Observable.merge(generalMessages, tradeSnapshotMessages);
     
@@ -160,6 +166,5 @@ export default function(apiKey: string, apiSecret: string, bfxFrom: string, bfxT
             //         messageMetadata.handler(msg);
             //     }
             // }
-    }).shareReplay()
-
-};
+    }).share()
+}, getCacheKey);
