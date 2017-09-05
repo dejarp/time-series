@@ -2,7 +2,9 @@ import * as _ from 'lodash';
 import * as Rx from 'rxjs';
 import ApiInstance from './api-instance';
 import TimeSeries from '../../core/time-series';
+import TimeSeriesPoint from '../../core/time-series-point';
 import {BfxActiveOrders} from './active-orders-series';
+import {BfxOrder} from './websocket-order-series';
 import ActiveOrders from './active-orders-series';
 import CollateBy from '../../core/operators/collate-by';
 
@@ -17,14 +19,14 @@ export default function CancelAllOrders(apiKey: string, apiSecret: string, bfxFr
     return CollateBy([activeOrders.do(bla => {
         console.log(bla);
     }), timeSeries])
-        .do(orders => {
-            _.forEach(orders.v[0].v, (order, orderId) => {
+        .do((orders : TimeSeriesPoint<[BfxActiveOrders, number]>) => {
+            _.forEach(orders.v[0].v, (order: BfxOrder, orderId) => {
                 bfxApi.ws.send([
                     0,
                     'oc',
                     null,
                     {
-                        id: orderId
+                        id: order.id
                     }
                 ]);
             });

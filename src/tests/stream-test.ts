@@ -61,9 +61,7 @@ let sellOrders = CollateBy(
         }
     }));
 
-let cancelOrders = CancelAllOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, holdPoints.do(bla => {
-    console.log(bla);
-}))
+let cancelOrders = CancelAllOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, closeSeries)
 
 cancelOrders.subscribe(console.log);
 
