@@ -15,7 +15,7 @@ export default function LowHighCrosses(timeSeries1: TimeSeries<number>, timeSeri
         }))
         .bufferCount(2,1)
         .filter(buffer => {
-            return buffer[0].v.timeSeries1.v < buffer[0].v.timeSeries2.v && buffer[1].v.timeSeries1.v >= buffer[1].v.timeSeries2.v
+            return buffer.length === 2 && buffer[0].v.timeSeries1.v < buffer[0].v.timeSeries2.v && buffer[1].v.timeSeries1.v >= buffer[1].v.timeSeries2.v
         })
         .map(buffer => ({
             d: buffer[1].d,

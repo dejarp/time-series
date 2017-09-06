@@ -14,6 +14,7 @@ export default function CreateBuyOrders(apiKey: string, apiSecret: string, bfxFr
     let prices = PriceSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength);
 
     return CollateBy([balances, prices, timeSeries])
+        .distinctUntilChanged(_.isEqual)
         .do((results : TimeSeriesPoint<TimeSeriesPoint<any>[]>) => {
             var price = results.v[1].v;
             var fromBalance = results.v[0].v['exchange'][bfxFrom].balance; // ex. MIOTA
@@ -22,8 +23,11 @@ export default function CreateBuyOrders(apiKey: string, apiSecret: string, bfxFr
             var totalToBalance = toBalance + (fromBalance * price);
             var totalTradableToBalance = (allocation * totalToBalance) - (fromBalance * price);
 
+            console.log('Creating buy order: ');
+
             if(totalTradableToBalance <= 0) {
                 // can't do anything
+                console.log('Already reached allocation');
                 return;
             }
 
@@ -31,7 +35,8 @@ export default function CreateBuyOrders(apiKey: string, apiSecret: string, bfxFr
             var desiredAmount = .999 * totalTradableToBalance/ desiredPrice
             var symbol = `t${bfxFrom}${bfxTo}`;
             var cid = new Date().getTime();
-            bfxApi.ws.send([
+
+            var orderPacket = [
                 0,
                 'on',
                 null,
@@ -44,6 +49,9 @@ export default function CreateBuyOrders(apiKey: string, apiSecret: string, bfxFr
                     price: `${desiredPrice}`,
                     hidden: 0
                 }
-            ]);
+            ]
+
+            console.log(orderPacket);
+            bfxApi.ws.send(orderPacket);
         });
 }

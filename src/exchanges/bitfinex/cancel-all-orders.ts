@@ -18,6 +18,8 @@ export default function CancelAllOrders(apiKey: string, apiSecret: string, bfxFr
 
     return CollateBy([activeOrders, timeSeries])
         .do((orders : TimeSeriesPoint<[BfxActiveOrders, number]>) => {
+            console.log('Cancel all orders');
+
             _.forEach(orders.v[0].v, (order: BfxOrder, orderId) => {
                 bfxApi.ws.send([
                     0,

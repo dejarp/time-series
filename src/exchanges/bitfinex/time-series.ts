@@ -83,24 +83,4 @@ export default function BfxTimeSeries(apiKey: string, apiSecret: string, bfxFrom
     //       high of the current bin, or you can wait until the next bin to begin trading on more accurate data.
     //var bidsTimeSeries = AlignToDates(bidsDataSource, dates).distinctUntilChanged(_.isEqual);
     // var asksTimeSeries = AlignToDates(asksDataSource, dates).distinctUntilChanged(_.isEqual);
-
-    // function placeLimitOrder(symbol, amount, price) {
-    //     var cid = new Date().getTime();
-    //     const order = [ 0, 'on', null, {
-    //         cid: cid,
-    //         // EXCHANGE LIMIT is only different from LIMIT in which funds it is using
-    //         type: 'EXCHANGE LIMIT',
-    //         symbol: symbol,
-    //         amount: amount.toString(),
-    //         price: price.toString(),
-    //         hidden: 0
-    //     } ];
-    //     bfxAPI.ws.submitOrder(order);
-    // }
-
-    // var orderSubject: Rx.Subject<any> = new Rx.Subject();
-    // orderSubject.subscribe(order => {
-    //     placeLimitOrder(order.bfxSymbol, order.amount, order.price);
-    // });
-
 }
