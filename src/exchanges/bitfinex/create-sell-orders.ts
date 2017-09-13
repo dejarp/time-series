@@ -13,7 +13,12 @@ export default function CreateSellOrders(apiKey: string, apiSecret: string, bfxF
     let balances = BalancesSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength);
     let prices = PriceSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength);
 
-    return CollateBy([balances, prices, timeSeries])
+    let sellSignals = timeSeries.filter(point => point.v)
+        .do(stoch => {
+            console.log(`Sell Point Reached`);
+        });
+
+    return CollateBy([balances, prices, sellSignals])
         .distinctUntilChanged(_.isEqual)
         .do((results : TimeSeriesPoint<TimeSeriesPoint<any>[]>) => {
             var price = results.v[1].v;
@@ -23,7 +28,7 @@ export default function CreateSellOrders(apiKey: string, apiSecret: string, bfxF
             var totalToBalance = toBalance + (fromBalance * price);
             var totalTradableFromBalance = (allocation * totalFromBalance) - (toBalance / price);
 
-            console.log('Creating sell order: ');
+            console.log('Creating sell order: ' + price);
 
             if(totalTradableFromBalance <= 0) {
                 console.log('already reached allocation')
@@ -52,6 +57,6 @@ export default function CreateSellOrders(apiKey: string, apiSecret: string, bfxF
             ];
 
             console.log(orderPacket);
-            //bfxApi.ws.send(orderPacket);
+            bfxApi.ws.send(orderPacket);
         });
 }

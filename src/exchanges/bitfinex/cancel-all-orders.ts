@@ -16,7 +16,12 @@ export default function CancelAllOrders(apiKey: string, apiSecret: string, bfxFr
     let bfxApi = ApiInstance(apiKey, apiSecret);
     let activeOrders = ActiveOrders(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength);
 
-    return CollateBy([activeOrders, timeSeries])
+    let cancelSignal = timeSeries.filter(point => point.v)
+        .do(stoch => {
+            console.log(`Cancel Point Reached`);
+        });
+
+    return CollateBy([activeOrders, cancelSignal])
         .do((orders : TimeSeriesPoint<[BfxActiveOrders, number]>) => {
             console.log('Cancel all orders');
 

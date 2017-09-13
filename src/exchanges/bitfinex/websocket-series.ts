@@ -35,7 +35,7 @@ export default _.memoize(function(apiKey: string, apiSecret: string, bfxFrom: st
         bfxAPI.ws.on('message', message => websocketMessages.next(message));
 
         bfxAPI.ws.on('error', error => {
-            console.error(error);
+            websocketMessages.error(error);
         });
 
         // TODO: normalize these kinds of events

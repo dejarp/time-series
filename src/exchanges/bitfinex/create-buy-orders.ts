@@ -13,7 +13,12 @@ export default function CreateBuyOrders(apiKey: string, apiSecret: string, bfxFr
     let balances = BalancesSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength);
     let prices = PriceSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength);
 
-    return CollateBy([balances, prices, timeSeries])
+    let buySignal = timeSeries.filter(point => point.v)
+        .do(stoch => {
+            console.log(`Buy Point Reached`);
+        });
+
+    return CollateBy([balances, prices, buySignal])
         .distinctUntilChanged(_.isEqual)
         .do((results : TimeSeriesPoint<TimeSeriesPoint<any>[]>) => {
             var price = results.v[1].v;
@@ -23,7 +28,7 @@ export default function CreateBuyOrders(apiKey: string, apiSecret: string, bfxFr
             var totalToBalance = toBalance + (fromBalance * price);
             var totalTradableToBalance = (allocation * totalToBalance) - (fromBalance * price);
 
-            console.log('Creating buy order: ');
+            console.log('Creating buy order: ' + price);
 
             if(totalTradableToBalance <= 0) {
                 // can't do anything

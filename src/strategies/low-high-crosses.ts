@@ -3,7 +3,7 @@ import TimeSeries from '../core/time-series';
 import TimeSeriesPoint from '../core/time-series';
 import CollateAtomic from '../core/operators/collate-atomic';
 
-export default function LowHighCrosses(timeSeries1: TimeSeries<number>, timeSeries2: TimeSeries<number>) : TimeSeries<{[key: string]: number}> {
+export default function LowHighCrosses(timeSeries1: TimeSeries<number>, timeSeries2: TimeSeries<number>) : TimeSeries<boolean> {
     return CollateAtomic(
         [timeSeries1, timeSeries2], 
         (series1, series2) => ({
@@ -14,11 +14,11 @@ export default function LowHighCrosses(timeSeries1: TimeSeries<number>, timeSeri
             }
         }))
         .bufferCount(2,1)
-        .filter(buffer => {
-            return buffer.length === 2 && buffer[0].v.timeSeries1.v < buffer[0].v.timeSeries2.v && buffer[1].v.timeSeries1.v >= buffer[1].v.timeSeries2.v
-        })
-        .map(buffer => ({
-            d: buffer[1].d,
-            v: _.mapValues(buffer[1].v, point => point.v)
-        }));
+        .filter(buffer => buffer.length === 2)
+        .map(buffer => {
+            return {
+                d: buffer[1].d,
+                v: buffer[0].v.timeSeries1.v < buffer[0].v.timeSeries2.v && buffer[1].v.timeSeries1.v >= buffer[1].v.timeSeries2.v
+            }
+        });
 }
