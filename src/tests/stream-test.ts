@@ -25,6 +25,9 @@ import Cluster from '../core/operators/cluster';
 import TimeSeriesPoint from '../core/time-series-point';
 import Or from '../core/operators/or';
 
+import * as CliClear from 'cli-clear';
+import AlignDate from '../core/align-date';
+import DateRange from '../core/operators/date-range';
 import ConsoleReport from '../core/console-report';
 
 const API_KEY = 'g0iI9DsJmEuLnZDIHJFXsm1DaJpqvA4TDQZlOslyYjA'
@@ -76,14 +79,16 @@ let stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, 14, 3)
 // stochasticDStream = mockStochasticDStream;
 
 // forumulate strategy (comprised of buy points, sell points, and hold points)
-let buyLine = HorizontalLine(stochasticDStream, 10);
-let sellLine = HorizontalLine(stochasticDStream, 90);
+let highLine = HorizontalLine(stochasticDStream, 10);
+let lowLine = HorizontalLine(stochasticDStream, 90);
 
-let buyPoints = HighLowCrosses(stochasticDStream, buyLine);
-let sellPoints = LowHighCrosses(stochasticDStream, sellLine);
+//let decisionStream = 
+
+let buyPoints = HighLowCrosses(stochasticDStream, highLine);
+let sellPoints = LowHighCrosses(stochasticDStream, lowLine);
 let holdPoints = Or(
-    HighLowCrosses(stochasticDStream, sellLine),
-    LowHighCrosses(stochasticDStream, buyLine)
+    HighLowCrosses(stochasticDStream, lowLine),
+    LowHighCrosses(stochasticDStream, lowLine)
 );
 
 // let buyPointsFiltered = Cluster(buyPoints, sellPoints);
@@ -99,16 +104,26 @@ let marketActions = Rx.Observable.merge(buyOrders, sellOrders, cancelOrders);
 
 //stochasticDStream.subscribe(console.log);
 
-ConsoleReport({
-    'Close': Round(closeSeries, 8),
-    'Low': Round(lowSeries, 8),
-    'High': Round(highSeries, 8),
-    'Stochastic K': Round(stochasticKStream, 4),
-    'Stochastic D': Round(stochasticDStream, 4),
-    'Buy': buyPoints,
-    'Sell': sellPoints,
-    'hold': holdPoints
-}).subscribe(_.noop, console.log);
+DateRange(
+    ConsoleReport({
+        'Close': Round(closeSeries, 8),
+        'Low': Round(lowSeries, 8),
+        'High': Round(highSeries, 8),
+        //'Stochastic K': Round(stochasticKStream, 4),
+        'Stochastic D': Round(stochasticDStream, 4),
+        'Buy': buyPoints,
+        'Sell': sellPoints,
+        'hold': holdPoints,
+        // 'BuyOrders': buyOrders,
+        // 'SellOrders': sellOrders,
+        // 'CancelOrders': cancelOrders
+    }),
+    AlignDate(new Date(), cycleLength),
+    null
+).subscribe(point => {
+    CliClear();
+    console.log(point.v.toString());
+}, console.log);
 
 // TODO: logging/tracing/debugging/reporting
 // TODO: Clearn up

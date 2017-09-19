@@ -12,28 +12,22 @@ import CollateBy from '../../core/operators/collate-by';
 //       but I have found that to not be the case. It will always display the
 //       "order not found" message in bitfinex. I don't know if this happens
 //       due to misuse of the API or a bug on their end. Leaning towards latter.
-export default function CancelAllOrders(apiKey: string, apiSecret: string, bfxFrom: string, bfxTo: string, cycleLength: number, timeSeries: TimeSeries<any>) {
+export default function CancelAllOrders(apiKey: string, apiSecret: string, bfxFrom: string, bfxTo: string, cycleLength: number, cancelSignal: TimeSeries<boolean>) : TimeSeries<any>{
     let bfxApi = ApiInstance(apiKey, apiSecret);
     let activeOrders = ActiveOrders(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength);
 
-    let cancelSignal = timeSeries.filter(point => point.v)
-        .do(stoch => {
-            console.log(`Cancel Point Reached`);
-        });
-
     return CollateBy([activeOrders, cancelSignal])
-        .do((orders : TimeSeriesPoint<[BfxActiveOrders, number]>) => {
-            console.log('Cancel all orders');
-
-            _.forEach(orders.v[0].v, (order: BfxOrder, orderId) => {
-                bfxApi.ws.send([
+        .map((orders : TimeSeriesPoint<[BfxActiveOrders, boolean]>) => {
+            return {
+                d: orders.d,
+                v: _.map(orders.v[0].v, (order: BfxOrder) => ([
                     0,
                     'oc',
                     null,
                     {
                         id: order.id
                     }
-                ]);
-            });
+                ]))
+            };
         });
 }

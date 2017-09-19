@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import * as CliTable from 'cli-table';
+import * as CliClear from 'cli-clear';
 import TimeSeries from './time-series';
 import TimeSeriesPoint from './time-series-point';
 import MovingWindow from './operators/moving-window';
@@ -35,12 +36,12 @@ export default function ConsoleReport(timeSeries: {[key: string]: TimeSeries<any
             head: _(timeSeries).keys().unshift('Date').value()
         });
 
-        let rows = _.map(window.v, reportPoint => _(reportPoint.v).values().map('v').unshift(reportPoint.d.toUTCString()).value())
+        let rows = _.map(window.v, reportPoint => _(reportPoint.v).values().map('v').unshift(reportPoint.d.toString()).value())
         _.forEach(rows, row => table.push(row));
 
-        return table;
-    })
-    .do(table => {
-        console.log(table.toString())
+        return {
+            d: window.d,
+            v: table
+        };
     });
 }

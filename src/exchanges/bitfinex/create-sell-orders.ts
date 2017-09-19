@@ -8,19 +8,15 @@ import {BfxBalances} from './balances-series';
 import CollateBy from '../../core/operators/collate-by';
 import PriceSeries from './price-close-series';
 
-export default function CreateSellOrders(apiKey: string, apiSecret: string, bfxFrom: string, bfxTo: string, cycleLength: number, timeSeries: TimeSeries<any>, allocation: number) {
+export default function CreateSellOrders(apiKey: string, apiSecret: string, bfxFrom: string, bfxTo: string, cycleLength: number, sellSignals: TimeSeries<boolean>, allocation: number) {
     let bfxApi = ApiInstance(apiKey, apiSecret);
     let balances = BalancesSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength);
     let prices = PriceSeries(apiKey, apiSecret, bfxFrom, bfxTo, cycleLength);
 
-    let sellSignals = timeSeries.filter(point => point.v)
-        .do(stoch => {
-            console.log(`Sell Point Reached`);
-        });
-
     return CollateBy([balances, prices, sellSignals])
         .distinctUntilChanged(_.isEqual)
         .do((results : TimeSeriesPoint<TimeSeriesPoint<any>[]>) => {
+            var sell = results.v[2].v;
             var price = results.v[1].v;
             var fromBalance = results.v[0].v['exchange'][bfxFrom].balance; // ex. MIOTA
             var toBalance = results.v[0].v['exchange'][bfxTo].balance; // ex. BTC
@@ -28,35 +24,36 @@ export default function CreateSellOrders(apiKey: string, apiSecret: string, bfxF
             var totalToBalance = toBalance + (fromBalance * price);
             var totalTradableFromBalance = (allocation * totalFromBalance) - (toBalance / price);
 
-            console.log('Creating sell order: ' + price);
-
-            if(totalTradableFromBalance <= 0) {
-                console.log('already reached allocation')
-                // can't do anything
-                return;
+            if(sell && totalTradableFromBalance > 0) {
+                var desiredPrice = results.v[1].v * 1.25;
+                var desiredAmount = .999 * totalTradableFromBalance * -1;
+                var symbol = `t${bfxFrom}${bfxTo}`;
+                var cid = new Date().getTime();
+    
+                return {
+                    d: results.d,
+                    v: [
+                        [
+                            0,
+                            'on',
+                            null,
+                            {
+                                cid: cid,
+                                type: 'EXCHANGE LIMIT',
+                                symbol: symbol,
+                                // TODO: factor in fees to how much can be purchased
+                                amount: `${desiredAmount}`,
+                                price: `${desiredPrice}`,
+                                hidden: 0
+                            }
+                        ]
+                    ]
+                };
             }
 
-            var desiredPrice = results.v[1].v * 1.25;
-            var desiredAmount = .999 * totalTradableFromBalance * -1;
-            var symbol = `t${bfxFrom}${bfxTo}`;
-            var cid = new Date().getTime();
-
-            let orderPacket = [
-                0,
-                'on',
-                null,
-                {
-                    cid: cid,
-                    type: 'EXCHANGE LIMIT',
-                    symbol: symbol,
-                    // TODO: factor in fees to how much can be purchased
-                    amount: `${desiredAmount}`,
-                    price: `${desiredPrice}`,
-                    hidden: 0
-                }
-            ];
-
-            console.log(orderPacket);
-            bfxApi.ws.send(orderPacket);
+            return {
+                d: results.d,
+                v: []
+            };
         });
 }
