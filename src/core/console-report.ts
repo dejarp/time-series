@@ -17,14 +17,6 @@ function Report(timeSeries: {[key: string]: TimeSeries<any>}) : TimeSeries<Repor
     });
 }
 
-function PrintReportToConsole(reportPoint: TimeSeriesPoint<ReportValues>) {
-    let reportLine = _.reduce(reportPoint.v, (line, value, column) => {
-        return `${line} ${value.v} |`
-    }, `| ${reportPoint.d} |`);
-
-    console.log(reportLine);
-}
-
 export default function ConsoleReport(timeSeries: {[key: string]: TimeSeries<any>}) {
     let maxRows = Math.floor((process.stdout.rows / 2) - 2);
     return MovingWindow(

@@ -22,6 +22,7 @@ import MovingHigh from '../core/operators/moving-high';
 
 import Round from '../core/operators/round';
 import Cluster from '../core/operators/cluster';
+import CarryForward from '../core/operators/carry-forward';
 import TimeSeriesPoint from '../core/time-series-point';
 import Or from '../core/operators/or';
 
@@ -37,19 +38,24 @@ let bfxFrom = 'IOT';
 let bfxTo = 'BTC';
 let bfxSymbol = `t${bfxFrom}${bfxTo}`;
 
-let cycleLength = Periods.fiveMinutes;
+let cycleLength5m = Periods.fiveMinutes;
+let cycleLength15m = Periods.fifteenMinutes;
 
 // Set up data sources
-let closeSeries = PriceCloseSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
-let lowSeries = PriceLowSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
-let highSeries = PriceHighSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength);
+let closeSeries5m = PriceCloseSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength5m);
+let lowSeries5m = PriceLowSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength5m);
+let highSeries5m = PriceHighSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength5m);
 
-let stochasticKStream = StochasticK(closeSeries, highSeries, lowSeries, 14)
-.distinctUntilChanged(_.isEqual)
-.shareReplay();
+let closeSeries15m = PriceCloseSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength15m);
+let lowSeries15m = PriceLowSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength15m);
+let highSeries15m = PriceHighSeries(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength15m);
 
 // Apply inidicator(s) to input data
-let stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, 14, 3)
+let stochasticDStream5m = StochasticD(closeSeries5m, highSeries5m, lowSeries5m, 14, 3)
+    .distinctUntilChanged(_.isEqual)
+    .shareReplay();
+
+let stochasticDStream15m = StochasticD(closeSeries15m, highSeries15m, lowSeries15m, 14, 3)
     .distinctUntilChanged(_.isEqual)
     .shareReplay();
 
@@ -79,53 +85,54 @@ let stochasticDStream = StochasticD(closeSeries, highSeries, lowSeries, 14, 3)
 // stochasticDStream = mockStochasticDStream;
 
 // forumulate strategy (comprised of buy points, sell points, and hold points)
-let highLine = HorizontalLine(stochasticDStream, 10);
-let lowLine = HorizontalLine(stochasticDStream, 90);
+let highLine5m = HorizontalLine(stochasticDStream5m, 20);
+let lowLine5m = HorizontalLine(stochasticDStream5m, 80);
 
-//let decisionStream = 
+let highLine15m = HorizontalLine(stochasticDStream15m, 20);
+let lowLine15m = HorizontalLine(stochasticDStream15m, 80);
 
-let buyPoints = HighLowCrosses(stochasticDStream, highLine);
-let sellPoints = LowHighCrosses(stochasticDStream, lowLine);
+let buyPoints = HighLowCrosses(stochasticDStream5m, highLine5m);
+let sellPoints = LowHighCrosses(stochasticDStream5m, lowLine5m);
 let holdPoints = Or(
-    HighLowCrosses(stochasticDStream, lowLine),
-    LowHighCrosses(stochasticDStream, lowLine)
+    HighLowCrosses(stochasticDStream5m, lowLine5m),
+    LowHighCrosses(stochasticDStream5m, lowLine5m)
 );
 
 // let buyPointsFiltered = Cluster(buyPoints, sellPoints);
 // let sellPointsFiltered = Cluster(sellPoints, buyPoints);
 
 // execute the strategy (create orders, and cancel orders as needed based on strategy)
-let allocation = .1;
-let cancelOrders = CancelAllOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, holdPoints);
-let buyOrders = CreateBuyOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, buyPoints, allocation);
-let sellOrders = CreateSellOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, sellPoints, allocation);
+// let allocation = .1;
+// let cancelOrders = CancelAllOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, holdPoints);
+// let buyOrders = CreateBuyOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, buyPoints, allocation);
+// let sellOrders = CreateSellOrders(API_KEY, API_SECRET, bfxFrom, bfxTo, cycleLength, sellPoints, allocation);
 
-let marketActions = Rx.Observable.merge(buyOrders, sellOrders, cancelOrders);
+// let marketActions = Rx.Observable.merge(buyOrders, sellOrders, cancelOrders);
 
-//stochasticDStream.subscribe(console.log);
+let domain5m = DateDomain(cycleLength5m);
 
 DateRange(
     ConsoleReport({
-        'Close': Round(closeSeries, 8),
-        'Low': Round(lowSeries, 8),
-        'High': Round(highSeries, 8),
-        //'Stochastic K': Round(stochasticKStream, 4),
-        'Stochastic D': Round(stochasticDStream, 4),
-        'Buy': buyPoints,
-        'Sell': sellPoints,
-        'hold': holdPoints,
-        // 'BuyOrders': buyOrders,
-        // 'SellOrders': sellOrders,
-        // 'CancelOrders': cancelOrders
+        // 'Close (5m)': Round(closeSeries5m, 8),
+        // 'Low (5m)': Round(lowSeries5m, 8),
+        // 'High (5m)': Round(highSeries5m, 8),
+        // 'Stoch D (5m)': Round(stochasticDStream5m, 4),
+        'Close (15m)': Round(closeSeries15m, 8),
+        'Low (15m)': Round(lowSeries15m, 8),
+        'High (15m)': Round(highSeries15m, 8),
+        'Stoch D (15m)': Round(stochasticDStream15m, 4),
+        // 'Buy': buyPoints,
+        // 'Sell': sellPoints,
+        // 'hold': holdPoints
     }),
-    AlignDate(new Date(), cycleLength),
+    AlignDate(new Date(), cycleLength15m),
     null
 ).subscribe(point => {
     CliClear();
     console.log(point.v.toString());
 }, console.log);
 
-// TODO: logging/tracing/debugging/reporting
+// TODO: Setup email notifications
 // TODO: Clearn up
 // TODO: Backtesting!!!
 // TODO: Unit tests

@@ -1,6 +1,6 @@
 import TimeSeries from '../../core/time-series';
-import HistoricalDataSelector from './historical-data-selector';
+import CandlesSelector from './candles-selector';
 
 export default function PriceOpenHistorical(bfxFrom: string, bfxTo: string, cycleLength: number) : TimeSeries<number> {
-    return HistoricalDataSelector(bfxFrom, bfxTo, cycleLength, 'open');
+    return CandlesSelector(bfxFrom, bfxTo, cycleLength, 'hist', 'open');
 }

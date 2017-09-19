@@ -12,7 +12,7 @@ type WebsocketPacket = {
 }
 
 let getCacheKey = (apiKey: string, apiSecret: string, bfxFrom: string, bfxTo: string, cycleLength: number) => {
-    return `${apiKey}${apiSecret}${bfxFrom}${bfxTo}${cycleLength}`;
+    return `${apiKey}${apiSecret}${bfxFrom}${bfxTo}`;
 }
 
 export default _.memoize(function(apiKey: string, apiSecret: string, bfxFrom: string, bfxTo: string, cycleLength: number) : TimeSeries<WebsocketPacket> {

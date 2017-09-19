@@ -22,10 +22,12 @@ var bfxTimeFrames = {
     // be no direct translation.
 };
 
+export type CandlesRequestType = 'hist' | 'last';
 export type BfxCandle = {open: number, close: number, low: number, high: number, volume: number};
-let resolveCacheKey = (bfxSymbol: string, cycleLength: number) => `${bfxSymbol}:${cycleLength}`
-let HistoricalData = _.memoize((bfxFrom: string, bfxTo: string, cycleLength: number) : TimeSeries<BfxCandle> => Rx.Observable
-    .defer(() => Rx.Observable.fromPromise(httpRequest(`${url}/candles/trade:${bfxTimeFrames[cycleLength]}:t${bfxFrom}${bfxTo}/hist`)))
+
+let resolveCacheKey = (bfxFrom: string, bfxTo: string, candlesRequestType: CandlesRequestType, cycleLength: number) => `${bfxFrom}:${bfxTo}:${candlesRequestType}:${cycleLength}`;
+let HistoricalData = _.memoize((bfxFrom: string, bfxTo: string, candlesRequestType: CandlesRequestType, cycleLength: number) : TimeSeries<BfxCandle> => Rx.Observable
+    .defer(() => Rx.Observable.fromPromise(httpRequest(`${url}/candles/trade:${bfxTimeFrames[cycleLength]}:t${bfxFrom}${bfxTo}/${candlesRequestType}`)))
     .map((body: string) => JSON.parse(body))
     .flatMap(candles => _.reverse(candles))
     .map(candle => ({
@@ -39,4 +41,5 @@ let HistoricalData = _.memoize((bfxFrom: string, bfxTo: string, cycleLength: num
         }
     }))
     .shareReplay(), resolveCacheKey);
+    
 export default HistoricalData;
