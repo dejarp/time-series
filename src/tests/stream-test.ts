@@ -120,7 +120,7 @@ DateRange(
         'Close (15m)': Round(closeSeries15m, 8),
         'Low (15m)': Round(lowSeries15m, 8),
         'High (15m)': Round(highSeries15m, 8),
-        'Stoch D (15m)': Round(stochasticDStream15m, 4),
+        'Stoch-D (15m)': Round(stochasticDStream15m, 4),
         // 'Buy': buyPoints,
         // 'Sell': sellPoints,
         // 'hold': holdPoints
