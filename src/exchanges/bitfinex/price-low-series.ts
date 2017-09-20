@@ -13,7 +13,7 @@ export default function(apiKey: string, apiSecret: string, bfxFrom: string, bfxT
     return AlignToDates(
         Rx.Observable.concat(
             priceLowHistorical,
-            priceLowLast,
+            priceLowLast.delay(<any> priceLowRealTime),
             priceLowRealTime
         ),
         DateDomain(cycleLength)
