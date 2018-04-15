@@ -1,0 +1,1 @@
+Hey you! yeah you! This library is only half-baked atm. Don't use it for anything important. I'm making it public to track progress, and to see if anyone out there has suggestions for direction or would like to contribute or tinker.
