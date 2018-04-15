@@ -1,10 +1,10 @@
 {
-  "name": "crypto-trader",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "author": "",
-  "license": "ISC",
+  "name": "time-series",
+  "version": "0.0.1",
+  "description": "A JavaScript library for working with time series data. Built using RxJS. Also contains some code for working with Bitfinex API at the moment.",
+  "main": "",
+  "author": "Paul Dejardin",
+  "license": "MIT",
   "dependencies": {
     "@types/lodash": "^4.14.74",
     "@types/node": "^8.0.28",
