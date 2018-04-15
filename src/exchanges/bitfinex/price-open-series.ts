@@ -1,5 +1,3 @@
-/// <reference path="../../type-supplements/rx.d.ts"/>
-
 import * as Rx from 'rxjs';
 import CandlesSelector from './candles-selector';
 import TimeSeries from '../../core/time-series';

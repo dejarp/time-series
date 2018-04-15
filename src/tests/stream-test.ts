@@ -23,6 +23,7 @@ import MovingHigh from '../core/operators/moving-high';
 import Round from '../core/operators/round';
 import Cluster from '../core/operators/cluster';
 import CarryForward from '../core/operators/carry-forward';
+import TimeSeries from '../core/time-series';
 import TimeSeriesPoint from '../core/time-series-point';
 import Or from '../core/operators/or';
 
@@ -31,6 +32,7 @@ import AlignDate from '../core/align-date';
 import DateRange from '../core/operators/date-range';
 import ConsoleReport from '../core/console-report';
 
+// These keys have been revoked. As far as I know the API still works, but you'll need your own account with Bitfinex.
 const API_KEY = 'g0iI9DsJmEuLnZDIHJFXsm1DaJpqvA4TDQZlOslyYjA'
 const API_SECRET = 'ONXjRxvFdy7XgPIO6HBn2gQx2sjLb3YGdLRc60etZPc'
 
@@ -111,16 +113,21 @@ let holdPoints = Or(
 
 let domain5m = DateDomain(cycleLength5m);
 
+function UpSample<T>(timeSeries: TimeSeries<T>, dates: Rx.Observable<Date>) : TimeSeries<T> {
+    return timeSeries.combineLatest(dates)
+        .map(results => results[0]);
+}
+
 DateRange(
     ConsoleReport({
         // 'Close (5m)': Round(closeSeries5m, 8),
         // 'Low (5m)': Round(lowSeries5m, 8),
         // 'High (5m)': Round(highSeries5m, 8),
         // 'Stoch D (5m)': Round(stochasticDStream5m, 4),
-        'Close (15m)': Round(closeSeries15m, 8),
-        'Low (15m)': Round(lowSeries15m, 8),
-        'High (15m)': Round(highSeries15m, 8),
-        'Stoch-D (15m)': Round(stochasticDStream15m, 4),
+        'Close (15m)': Round(UpSample(closeSeries15m, DateDomain(cycleLength5m)), 8),
+        'Low (15m)': Round(UpSample(lowSeries15m, DateDomain(cycleLength5m)), 8),
+        'High (15m)': Round(UpSample(highSeries15m, DateDomain(cycleLength5m)), 8),
+        'Stoch-D (15m)': Round(UpSample(stochasticDStream15m, DateDomain(cycleLength5m)), 4),
         // 'Buy': buyPoints,
         // 'Sell': sellPoints,
         // 'hold': holdPoints
@@ -128,7 +135,7 @@ DateRange(
     AlignDate(new Date(), cycleLength15m),
     null
 ).subscribe(point => {
-    CliClear();
+    //CliClear();
     console.log(point.v.toString());
 }, console.log);
 
